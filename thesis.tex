@@ -1,0 +1,72 @@
+\documentclass[
+  digital,
+  oneside,
+  nosansbold,
+  nocolorbold,
+  lof,
+  lot
+]{fithesis4}
+
+\usepackage[resetfonts]{cmap}
+\usepackage[T1,T2A]{fontenc}
+\usepackage[
+  main=english,
+  english, german,  czech, slovak
+]{babel}
+
+\usepackage{paratype}
+
+\thesissetup{
+    date        = \the\year/\the\month/\the\day,
+    university  = mu,
+    faculty     = fi,
+    type        = bc,
+    department  = Department of Computer Science,
+    author      = Petr Kubica,
+    gender      = m,
+    advisor     = {RNDr. Jan Mrázek.},
+    title       = {Jaculus: Approachable Programming of Embedded Devices via Javascript},
+    TeXtitle    = {Jaculus: Approachable Programming of Embedded Devices via Javascript},
+    keywords    = {keyword1, keyword2, ...},
+    TeXkeywords = {keyword1, keyword2, \ldots},
+    abstract    = {
+      This is the abstract of my thesis, which can
+
+      span multiple paragraphs.
+    },
+    thanks      = {
+      These are the acknowledgements for my thesis, which can
+
+      span multiple paragraphs.
+    },
+    bib         = bibliography.bib,
+    facultyLogo = fithesis-fi,
+}
+\usepackage{makeidx}
+\makeindex
+\usepackage{paralist}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{url}
+\usepackage{markdown}
+\usepackage{listings}
+\lstset{
+  basicstyle      = \ttfamily,
+  identifierstyle = \color{black},
+  keywordstyle    = \color{blue},
+  keywordstyle    = {[2]\color{cyan}},
+  keywordstyle    = {[3]\color{olive}},
+  stringstyle     = \color{teal},
+  commentstyle    = \itshape\color{magenta},
+  breaklines      = true,
+}
+\usepackage{floatrow}
+\floatsetup[table]{capposition=top}
+\usepackage[babel]{csquotes}
+
+\begin{document}
+
+
+
+\end{document}
