@@ -13,9 +13,9 @@
 - develop multiple standalone libraries/tools which form a complete solution for programming embedded devices using Javascript
 - Jaculus-machine - standalone, embeddable, C++ centered JavaScript runtime based on QuickJS
 - Jaculus-link - standalone communication library for multiplexing multiple channels on a single stream connection
-- Jaculus - JavaScript runtime for embedded devices
+- Jaculus-device-core - core library for creating new Jaculus devices
 - Jaculus-tools - tools for controlling and monitoring Jaculus devices
-- support for ESP32, ESP32-S3 boards
+- Jaculus-esp32 - Jaculus device port for the ESP32 platform (supports ESP32, ESP32-S3)
 
 
 ## Jaculus-machine
@@ -32,7 +32,7 @@
 - lower-level features vs. higher-level features
 
 ### Implementation
-- ISO C++ 20
+- ISO C++ 20, QuickJS - posix
 - EventLoop, EventQueue
 - single context
 
@@ -56,6 +56,7 @@
 ### Implementation
 - ISO C++ 20
 - no connection bindings
+- protocol
 
 ### Usage
 - defining a Stream
@@ -64,7 +65,7 @@
 - creating Consumer
 
 
-## Jaculus
+## Jaculus-device-core
 
 ### Features
 - Jaculus-machine runtime
@@ -79,7 +80,7 @@
 - central locking mechanism with a timeout to prevent multiple clients from accessing the device at the same time
 
 ### Implementation
-- ISO C++ 20
+- ISO C++ 20, posix (esp + std::filesystem, QuickJS)
 - Uploader, Controller protocols
 
 ### Usage
@@ -102,6 +103,16 @@
 ### Usage
 - command-line tool
 - Node.js library
+
+
+## Jaculus-esp32
+
+### Features
+- support for basic peripherals (GPIO, ADC, LEDC, Neopixel)
+
+### Usage
+- flash manually using ESP-IDF
+- flash using Jaculus-tools
 
 
 ## Pitfalls
