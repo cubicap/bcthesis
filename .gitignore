@@ -18,3 +18,4 @@ _markdown_*
 *.run.xml
 *.synctex.gz
 *.toc
+*.synctex(busy)

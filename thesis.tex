@@ -11,7 +11,7 @@
 \usepackage[T1,T2A]{fontenc}
 \usepackage[
   main=english,
-  english, german,  czech, slovak
+  english, german, czech, slovak
 ]{babel}
 
 \usepackage{paratype}
@@ -57,16 +57,283 @@
   keywordstyle    = \color{blue},
   keywordstyle    = {[2]\color{cyan}},
   keywordstyle    = {[3]\color{olive}},
-  stringstyle     = \color{teal},
-  commentstyle    = \itshape\color{magenta},
+  stringstyle     = \color{red},
+  commentstyle    = \itshape\color{teal},
   breaklines      = true,
 }
 \usepackage{floatrow}
 \floatsetup[table]{capposition=top}
 \usepackage[babel]{csquotes}
 
+
+\lstdefinelanguage{js}{
+  keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
+  ndkeywords={class, export, boolean, throw, implements, import, this},
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]",
+}
+
+\lstdefinelanguage{cpp}{
+  keywords={alignas, alignof, and, and_eq, asm, atomic_cancel, atomic_commit, atomic_noexcept, auto, bitand, bitor, bool, break, case, catch, char, char8_t, char16_t, char32_t, class, compl, concept, const, consteval, constexpr, constinit, const_cast, continue, co_await, co_return, co_yield, decltype, default, delete, do, double, dynamic_cast, else, enum, explicit, export, extern, false, float, for, friend, goto, if, inline, int, long, mutable, namespace, new, noexcept, not, not_eq, nullptr, operator, or, or_eq, private, protected, public, reflexpr, register, reinterpret_cast, requires, return, short, signed, sizeof, static, static_assert, static_cast, struct, switch, synchronized, template, this, thread_local, throw, true, try, typedef, typeid, typename, union, unsigned, using, virtual, void, volatile, wchar_t, while, xor, xor_eq},
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morecomment=[l][\color{violet}]{\#},
+  morestring=[b]',
+  morestring=[b]",
+}
+
+
 \begin{document}
+\shorthandoff{'}
+\begin{markdown*}{%
+  hybrid,
+  definitionLists,
+  footnotes,
+  inlineFootnotes,
+  hashEnumerators,
+  fencedCode,
+  citations,
+  citationNbsps,
+  pipeTables,
+  tableCaptions,
+}
+
+\chapter{Motivation}
+
+  - problems of programming using C/C++
+  - event-centered nature of many embedded systems
+  - use cases
+
+
+\chapter{Proposed solution}
+
+The proposed solution is to use a high-level, interpreted language instead.
+
+JavaScript was chosen for its popularity and low hardware requirements of some of its implementations. It also maps very well to the event-centered nature of many embedded systems, as JavaScript is inherently event-driven.
+
+
+\chapter{Approach}
+
+The chosen JavaScript runtime is QuickJS, a small, embeddable C implementation of the ECMAScript 2020 specification. Compared to other popular options -- DukTape, MujJS, and XS -- it stands on a nice middle ground regarding the feature set, performance, and memory footprint.
+
+
+The whole solution is split into multiple components:
+
+  - Jaculus-machine -- standalone, embeddable, C++ centric JavaScript runtime based on QuickJS
+  - Jaculus-link -- standalone communication library for multiplexing multiple channels on a single stream connection
+  - Jaculus-device-core -- core library for creating new Jaculus devices
+  - Jaculus-tools -- tools for controlling and monitoring Jaculus devices
+  - Jaculus-esp32 -- Jaculus device port for the ESP32 platform (with verified support for  ESP32 and ESP32-S3)
+
+
+\chapter{Jaculus-machine}
+
+Jaculus-machine is a standalone, embeddable, C++ centric JavaScript runtime based on QuickJS. The main goal of Jaculus-machine is to provide a simple and easy-to-use API for adding features to the runtime.
+
+Jaculus-machine uses two main concepts, which I will refer to as *Machine* and *Feature* throughout the rest of this thesis.
+
+  - *Machine* -- an instance of the runtime
+  - *Feature* -- a component that can be used as a part of a *Machine* and which provides functionality to the runtime or other *Features*
+
+\section{Architecture}
+
+\subsection{Machine and Features}
+
+*Machine* is defined using stack inheritance from `MachineBase` and selected *Feature* classes. The `MachineBase` class provides only the most basic functionality of the runtime, whereas the *Feature* classes provide additional functionality, such as event loop, filesystem access, etc.
+
+An example definition of a *Machine* may look like this:
+
+```cpp
+using Machine =
+    ModuleLoaderFeature<
+    FilesystemFeature<
+    StdioFeature<
+    BasicStreamFeature<
+    jac::MachineBase
+>>>>;
+```
+
+The stack design of *Machine* allows interfacing with different *Features* in C++ directly without any middleware. Lower-level *Features* are located lower in the stack and implement platform specific functionality, while higher-level *Features* are located higher in the stack and can use the abstraction provided by the lower-level *Features*. This allows for easy portability of higher-level *Features* to other platforms.
+
+\subsection{Value wrapping and conversion}
+
+The library provides a simple API for wrapping JavaScript values and converting them to and from C++ types. The base class for JavaScript value wrapper is `jac::ValueWrapper` and provides a general API for working with JavaScript values. More specific wrapper classes are derived from `jac::ValueWrapper` and provide additional functionality, such as `jac::ObjectWrapper` and `jac::FunctionWrapper`.
+
+Default conversions for some built-in types are provided, such as `int`, `double`, `std::string`, and `std::vector`. The library also provides a mechanism for defining custom conversions for user-defined (and not-yet-supported built-in) types.
+
+Many of these conversions are done automatically in, among others, getters, setters, and function calls. This allows for wrapping existing functions without having to write any conversion code.
+
+\subsection{Class wrapping}
+
+The library provides an interface for defining JavaScript classes, which can contain opaque C++ objects. The user first needs to define a `ProtoBuilder` class, which tells the library how to construct the JavaScript object prototype. The class `jac::Class` can then be used to initialize the class in a given context, construct the JavaScript object or obtain its constructor.
+
+
+\section{Features}
+
+  - minimal feature set, easy extensibility
+  - event loop is available in both C++ and Javascript
+  - conversion between C++ and Javascript types
+  - wrapper API for C++ classes
+
+\section{Implementation}
+
+  - ISO C++ 20, QuickJS - posix
+  - EventLoop, EventQueue
+  - single context
+
+\section{Usage}
+
+  - JS value wrapping, conversion
+  - class wrapping
+  - function wrapping
+  - exceptions
+
+\chapter{Jaculus-link}
+
+\section{Features}
+
+  - multiplexing multiple channels on a single stream connection
+  - routing multiple channelized connections to a single consumer
+
+\section{Architecture}
+
+  - *Mux* - multiplexing multiple channels on a single stream connection
+  - *Router* - routing multiple channelized connections to a single consumer
+  - *Consumer* - interface for receiving data from a channel
+
+\section{Implementation}
+
+  - ISO C++ 20
+  - no connection bindings
+  - protocol
+
+\section{Usage}
+
+  - defining a Stream
+  - configuring Mux
+  - configuring Router
+  - creating Consumer
+
+
+\chapter{Jaculus-device-core}
+
+\section{Features}
+
+  - Jaculus-machine runtime
+  - communication via Jaculus-link
+  - control protocol for controlling and monitoring Jaculus-machine runtime
+  - uploader protocol for uploading code/data to Jaculus device
+
+\section{Architecture}
+
+  - *Controller* - entry point for defining a Jaculus device and service for controlling it
+  - *Uploader* - service for uploading code/data to Jaculus device
+  - *Machine* - Jaculus-machine runtime
+  - central locking mechanism with a timeout to prevent multiple clients from accessing the device at the same time
+
+\section{Implementation}
+
+  - ISO C++ 20, posix (esp + std::filesystem, QuickJS)
+  - Uploader, Controller protocols
+
+\section{Usage}
+
+  - defining a Jaculus device
+  - controlling a Jaculus device
+
+
+\chapter{Jaculus-tools}
+
+\section{Features}
+
+  - access to Jaculus devices via Uploader and Controller protocols
+  - command-line tool
+  - Node.js library
+  - transpile TypeScript code
+
+\section{Implementation}
+
+  - TypeScript
+  - access to Jaculus device services via JacDevice class
+
+\section{Usage}
+
+  - command-line tool
+  - Node.js library
+
+
+\chapter{Jaculus-esp32}
+
+\section{Features}
+
+  - support for basic peripherals (GPIO, ADC, LEDC, Neopixel)
+
+\section{Usage}
+
+  - flash manually using ESP-IDF
+  - flash using Jaculus-tools
+
+
+\chapter{Pitfalls}
+
+\section{Only one context per Machine}
+From the beginning, the design of Jaculus-machine was to have only one context per machine. It seemed not to be a limiting factor and simplified implementation. Now it starts to show it was a wrong decision and proves to be a limitation in some cases.
+
+For example, in REPL, all exceptions should be caught and reported to standard output. When starting REPL from a JavaScript program, the main program should crash on unhandled exceptions, whereas the REPL should not. Implementation of this would require REPL and the main program to be executed in separate contexts to distinguish between their behavior regarding exception handling.
+
+
+\section{Unhandled promise rejections not being reported}
+This is a limitation of QuickJS. Although QuickJS does have a mechanism for reporting unhandled promise rejections, it reports some false positives. Consider the following example:
+
+``` js
+new Promise((resolve, reject) => {
+    console.log("promise");
+    reject(null);
+}).then(() => {
+    console.log("ok");
+}).catch(() => {
+    console.log("error");
+});
+
+console.log("after");
+```
+
+The promise is created and immediately rejected. At that moment, the promise does not have a rejection handler, and thus QuickJS reports an unhandled promise rejection. However, the handler is added before the promise goes out of scope and handles the rejection.
+
+Fortunately, this is not a problem for well-written code, which handles all promise rejections. However, when an unhandled promise rejection occurs, it is not reported, which may lead to errors that are difficult to debug.
+
+To fix this, modifying QuickJS internals would be required, which is outside the scope of this work, but it is an essential consideration for future work.
+
+
+  % - no debugger - QuickJS does not support debugging
 
 
 
+\chapter{Comparison with existing solutions}
+
+  - Minimum C/C++ (e.g. ESP-IDF)
+  - Arduino (C/C++)
+  - NodeMCU (Lua)
+  - CircuitPython (Python)
+  - Espruino (Javascript)
+
+  - performance
+  - memory usage
+  - extensibility
+  - usability
+  - features
+
+
+\chapter{Future work}
+
+  - Web IDE
+  - REPL
+  - debugger?
+  - add more features
+  - support more platforms (e.g. STM32, RPi)
+
+\shorthandon{'}
+\end{markdown*}
 \end{document}
