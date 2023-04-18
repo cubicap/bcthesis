@@ -52,7 +52,7 @@
 \usepackage{markdown}
 \usepackage{listings}
 \lstset{
-  basicstyle       = \ttfamily,
+  basicstyle       = \small\ttfamily,
   identifierstyle  = \color{black},
   keywordstyle     = \color{blue},
   keywordstyle     = {[2]\color{cyan}},
@@ -114,7 +114,6 @@ The proposed solution is to use a high-level, interpreted language instead.
 JavaScript was chosen for its popularity and low hardware requirements of some of its implementations. It also maps very well to the event-centered nature of many embedded systems, as JavaScript is inherently event-driven.
 
 Because JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as compiling or running TypeScript on a microcontroller is not feasible, it must first be compiled to JavaScript.
-
 
 \chapter{Approach}
 
@@ -181,9 +180,15 @@ using Machine =
 >>>>;
 ```
 
-The stack design of *Machine* allows interfacing with different *Features* in C++ directly without any middleware. Lower-level *Features* are located lower in the stack and implement platform specific functionality, while higher-level *Features* are located higher in the stack and can use the abstraction provided by the lower-level *Features*. This allows for easy portability of higher-level *Features* to other platforms.
+The stack design of *Machine* allows interfacing with different *Features* in C++ directly without any middleware. Lower-level *Features* are located lower in the stack and implement platform-specific functionality, while higher-level *Features* are located higher in the stack and can use the abstraction provided by the lower-level *Features*. This allows for easy portability of higher-level *Features* to other platforms.
 
-*Features*, which export functionality to the JavaScript environment, should also provide the same functionality to other *Features* in a way that is as close to the JavaScript API as possible. When a *Feature* defines a JavaScript module, it should wrap the module functionality in a member class instance, so that other *Features* can access the functionality as `this->moduleName.function()`.
+*Features*, which export functionality to the JavaScript environment, should also provide the same functionality to other *Features* in a way that is as close to the JavaScript API as possible. When a *Feature* defines a JavaScript module, it should wrap the module functionality in a member class instance so that other *Features* can access the functionality as `this->moduleName.function()`.
+
+\subsection{Exceptions}
+
+Jaculus-machine provides a set of wrappers that allow usage of C++ code in the runtime. When an exception is thrown in the C++ code, it is caught by the wrapper, converted to a JavaScript exception, and propagated to the runtime. The library allows the user to specify the type of JavaScript `Error` or any other JavaScript value that should be thrown.
+
+Similarly, when a JavaScript exception is thrown in the runtime, it is caught by its wrapper, converted to a C++ exception of type `jac::Exception`, and propagated to the C++ code.
 
 
 \section{Features}
@@ -192,7 +197,19 @@ Jaculus-machine adds a minimum set of features to the runtime but provides tools
 
 \subsection{Value wrapping and conversion}
 
-The library provides a simple API for wrapping JavaScript values and converting them to and from C++ types. The base class for JavaScript value wrapper is `jac::ValueWrapper` and provides a general API for working with JavaScript values. More specific wrapper classes are derived from `jac::ValueWrapper` and provide additional functionality, such as `jac::ObjectWrapper` and `jac::FunctionWrapper`.
+QuickJS uses reference counting for memory management, and the user is responsible for freeing JavaScript values when they are no longer needed. Jaculus-machine provides a set of classes that wrap JavaScript values and provide RAII semantics for them. The classes also provide a simple API for converting to and from C++ types.
+
+The base class for JavaScript value wrapper is `jac::ValueWrapper` and provides a general API for working with JavaScript values. More specific wrapper classes are derived from `jac::ValueWrapper` and provide additional functionality, such as `jac::ObjectWrapper` and `jac::FunctionWrapper`.
+
+The wrapped value can be either a value (e.g., a number) or a reference (e.g., an object).
+`jac::ValueWrapper` has a template parameter `managed` that defines whether the wrapper takes ownership of the underlying JavaScript value. This pattern is assumed from QuickJS, which sometimes does not give ownership of the value to the user to reduce the number of changes in its reference count. If the value is a reference, depending on the value of `managed`, the wrapper will either be a strong or a weak reference to the value. For convenience, the library provides two type aliases for all built-in wrappers, which are usually used instead and follow the following pattern:
+
+```cpp
+// value/strong reference
+using Value = ValueWrapper<true>;
+// value/weak reference
+using ValueWeak = ValueWrapper<false>;
+```
 
 Default conversions for some built-in types are provided, such as `int`, `double`, `std::string`, and `std::vector`. The library also provides a mechanism for defining custom conversions for user-defined (and not-yet-supported built-in) types.
 
@@ -220,6 +237,12 @@ The following *Features* are included with the library (their class names are su
   - Stdio -- a feature that adds `stdin`, `stdout`, and `stderr` streams to the *Machine* and `console` interface only to the runtime
   - Timers -- typical JavaScript timers and a sleep function
 
+\subsection{Watchdog}
+
+The `jac::MachineBase` class provides a watchdog that can be used to detect infinite loops in the runtime. The watchdog can be configured using the `setWatchdogTimeout` method. By setting the timeout to 0, the watchdog can be disabled. The watchdog is disabled by default.
+
+By default, the watchdog will interrupt the runtime on timeout. This behavior can be changed by setting the watchdog handler using the `setWatchdogHandler` method. Instead of interrupting, the handler will be called, and if it returns `true`, the watchdog will interrupt the runtime. If the handler returns `false`, the machine will continue to run, but the watchdog will not be reset.
+
 
 \section{Implementation}
 
@@ -228,6 +251,7 @@ The following *Features* are included with the library (their class names are su
 \subsection{Default event loop}
 
 Default event loop implementation is split into two separate *Features*. One implements an event queue, and the other implements the event loop. This allows for easier portability, as the event loop itself can be reused on different platforms, while the event queue can be extended to, for example, support scheduling events from interrupts.
+
 
 \section{Usage}
 
@@ -257,7 +281,7 @@ machine.initialize();
 
 \subsection{Running JavaScript code}
 
-The *Machine* can evaluate JavaScript code from a string using the `eval` method. The `eval` method takes the code to evaluate, the filename of the code (used for error reporting), and a set of flags that control the evaluation context. The following code evaluates a simple "Hello, world!" program:
+Using the `eval` method, the *Machine* can evaluate JavaScript code from a string. The `eval` method takes the code to evaluate, the filename of the code (used for error reporting), and a set of flags that control the evaluation context. The following code evaluates a simple "Hello, world!" program:
 
 ```cpp
 // jac::MachineBase::eval(std::string code, std::string filename, jac::EvalFlags flags)
@@ -287,12 +311,175 @@ The `runEventLoop` method will block until the event loop is stopped. It must be
 
 If an unhandled exception is thrown by the event loop, it will be wrapped to C++ exception of type `jac::Exception` and thrown by the `runEventLoop` method. The event loop will also be stopped.
 
+\subsection{JavaScript values}
 
-  - JS value wrapping, conversion
-  - class wrapping
-  - function wrapping
-  - exceptions
-  - watchdog
+As described in ((TODO)), the library provides a mechanism for wrapping JavaScript values.
+
+New JavaScript values can be created using static methods of the `jac::ValueWrapper` and its subclasses. The following code shows some examples:
+
+```cpp
+ContextRef ctx = ...;
+
+jac::Value undefined = jac::Value::undefined(ctx);
+jac::Value number = jac::Value::from<int>(ctx, 42);
+jac::Value string = jac::Value::from<std::string>(ctx, "Hello, world!");
+jac::Value object = jac::Object::create(ctx);
+jac::Value array = jac::Array::create(ctx);
+```
+
+The `jac::ValueWrapper` class provides methods for converting the wrapped value to a C++ value:
+
+```cpp
+jac::Value value = ...;
+
+int number = value.to<int>();
+std::string string = value.to<std::string>();
+```
+
+If the wrapped value cannot be converted to the requested type, a `jac::Exception` will be thrown.
+
+\subsection{JavaScript exceptions}
+
+If wrapped C++ code throws an exception, it will be wrapped to a JavaScript exception and thrown to the JavaScript code. The following exception types are converted as follows:
+
+  - `jac::Exception` -- the exception is converted to a specified `Error` type, or a specified value is thrown
+  - `std::exception` -- the exception is converted to an `Error` object with the exception message
+  - any other exception -- the exception is converted to an `Error` object with the message `"unknown exception"`
+
+To create a `jac::Exception` that will be converted to a specified `Error` type, the `jac::Exception::create` method can be used:
+
+```cpp
+ContextRef ctx = ...;
+
+jac::Exception::create(ctx, jac::Exception::Type::TypeError, "invalid argument");
+```
+
+To create a `jac::Exception` that will be converted to a specified value, the value can be converted to a `jac::Exception` using the `jac::ValueWrapper::to` method:
+
+```cpp
+ContextRef ctx = ...;
+
+jac::Value value = ...;
+jac::Exception exception = value.to<jac::Exception>();
+```
+
+\subsection{Wrapping C++ functions}
+
+The library provides a mechanism for wrapping C++ functions to be called from JavaScript as described in ((TODO)).
+
+C++ functions can be wrapped using the `jac::FunctionFactory` class. The following code shows some examples:
+
+```cpp
+ContextRef ctx = ...;
+
+jac::FunctionFactory ff(ctx);
+
+ff.newFunction([](int a, int b) { return a + b; });
+
+ff.newFunctionVariadic([](const std::vector<int> args) {
+    int sum = 0;
+    for (int arg : args) {
+        sum += arg;
+    }
+    return sum;
+});
+```
+
+Sometimes, the user might want to wrap a function, which has access to `this` value. The `newFunctionThis` and `newFunctionThisVariadic` methods can be used for this purpose:
+
+```cpp
+ContextRef ctx = ...;
+
+jac::FunctionFactory ff(ctx);
+
+ff.newFunctionThis([](jac::Value thisValue, int a, int b) {
+    return thisValue.to<int>() + a + b;
+});
+
+ff.newFunctionThisVariadic([](jac::Value thisValue, const std::vector<int> args) {
+    int sum = thisValue.to<int>();
+    for (int arg : args) {
+        sum += arg;
+    }
+    return sum;
+});
+```
+
+\subsection{JavaScript classes}
+
+The library provides a mechanism for creating JavaScript classes. These classes can contain opaque C++ data, as described in ((TODO)).
+
+  1. To create a class, the user must first define a `ProtoBuilder` struct. The `ProtoBuilder` describes the class's behavior and properties using static methods. Its features are specified by inheriting from structs from the `jac::ProtoBuilder` namespace and overriding their **static** interface. The base structs also provide some convenience functions for describing the class. The following code shows some examples:
+
+```cpp
+using namespace jac;
+
+struct MyBuilder : public ProtoBuilder::Properties {
+    static void addProperties(ContextRef ctx, Object proto) {
+        proto.defineProperty("foo", Value::from(ctx, 42));
+    }
+};
+
+struct MyBuilder2 : public ProtoBuilder::Callable {
+    static Value callFunction(ContextRef ctx, ValueWeak funcObj, ValueWeak thisVal, std::vector<ValueWeak> args) {
+        return Value::from(ctx, static_cast<int>(args.size()));
+    }
+
+    // the default implementation - does not have to be overridden if not needed
+    static Value callConstructor(ContextRef ctx, ValueWeak funcObj, ValueWeak target, std::vector<ValueWeak> args) {
+        throw Exception::create(ctx, Exception::Type::TypeError, "Class cannot be called as a constructor");
+    }
+};
+
+struct MyBuilder3 : public ProtoBuilder::Opaque<MyClass>, public ProtoBuilder::Properties {
+    static MyClass* constructOpaque(ContextRef ctx, std::vector<ValueWeak> args) {
+        return new MyClass();
+    }
+
+    // the default implementation - does not have to be overridden if not needed
+    static void destructOpaque(JSRuntime* rt, MyClass* ptr) {
+        delete ptr;
+    }
+
+    static void addProperties(ContextRef ctx, Object proto) {
+        addPropMember<int, &MyClass::foo>(ctx, proto, "foo");
+    }
+};
+```
+
+  2. The `jac::Class` template can be instantiated with the `ProtoBuilder` struct to create a class definition and a name can be assigned using the `init` method. The `init` method can be called repeatedly without any effect if called with the same name; otherwise, an exception will be thrown. The following code shows some examples:
+
+```cpp
+using MyClass = Class<MyBuilder>;
+
+void foo() {
+    MyClass::init("MyClass");
+}
+```
+
+  3. To use the class in a given context, the context must be initialized with the class definition:
+
+```cpp
+ContextRef ctx = ...;
+
+MyClass::init(ctx);
+```
+
+  4. The user can now get the class constructor and prototype and instantiate the class:
+
+```cpp
+ContextRef ctx = ...;
+
+void bar() {
+    MyClass::init(ctx);
+
+    Value constructor = MyClass::getConstructor(ctx);
+    Value prototype = MyClass::getPrototype(ctx);
+
+    Value obj = constructor.to<Function>().callConstructor();
+};
+```
+
 
 \chapter{Jaculus-link}
 
