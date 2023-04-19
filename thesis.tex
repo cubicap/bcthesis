@@ -8,7 +8,7 @@
 ]{fithesis4}
 
 \usepackage[resetfonts]{cmap}
-\usepackage[T1,T2A]{fontenc}
+\usepackage[T1]{fontenc}
 \usepackage[
   main=english,
   english, german, czech, slovak
@@ -45,11 +45,9 @@
 \usepackage{makeidx}
 \makeindex
 \usepackage{paralist}
-\usepackage{amsmath}
-\usepackage{amsthm}
-\usepackage{amsfonts}
 \usepackage{url}
 \usepackage{markdown}
+\def\markdownRendererCodeSpan#1{\colorbox{gray!10}{#1}}
 \usepackage{listings}
 \lstset{
   basicstyle       = \small\ttfamily,
@@ -61,6 +59,7 @@
   commentstyle     = \itshape\color{teal},
   breaklines       = true,
   showstringspaces = false,
+  backgroundcolor  = \color{gray!10},
 }
 \usepackage{floatrow}
 \floatsetup[table]{capposition=top}
@@ -234,7 +233,7 @@ The library provides an interface for defining JavaScript classes, which can con
 
 \subsection{Built-in *Features*}
 
-The following *Features* are included with the library (their class names are suffixed with `"Feature"`):
+The following *Features* are included with the library (their class names are suffixed with "Feature"):
 
   - EventQueue -- an asynchronous event queue that can be used to schedule events to be executed in the event loop; the events can be scheduled from any thread
   - EventLoop -- an event loop that uses an event queue to execute events in the main thread
@@ -351,7 +350,7 @@ If wrapped C++ code throws an exception, it will be wrapped to a JavaScript exce
 
   - `jac::Exception` -- the exception is converted to a specified `Error` type, or a specified value is thrown
   - `std::exception` -- the exception is converted to an `Error` object with the exception message
-  - any other exception -- the exception is converted to an `Error` object with the message `"unknown exception"`
+  - any other exception -- the exception is converted to an `Error` object with the message "unknown exception"
 
 To create a `jac::Exception` that will be converted to a specified `Error` type, the `jac::Exception::create` method can be used:
 
