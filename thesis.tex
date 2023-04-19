@@ -124,8 +124,10 @@ The whole solution is split into multiple components:
   - Jaculus-machine -- standalone, embeddable, C++ centric JavaScript runtime using QuickJS at its core
   - Jaculus-link -- standalone communication library for multiplexing multiple channels on a single stream connection
   - Jaculus-device-core -- core library for creating new Jaculus devices
-  - Jaculus-tools -- tools for controlling and monitoring Jaculus devices
+  - Jaculus-tools -- a command-line application for controlling and monitoring Jaculus devices
   - Jaculus-esp32 -- Jaculus device port for the ESP32 platform (with verified support for ESP32 and ESP32-S3)
+
+This approach allows for the creation of Jaculus devices, which give complete control over the device to the JavaScript runtime, or applications whose main logic is written in C++ and which only embed the JavaScript runtime as a part of the application. The use case for the latter are, for example, devices used as game elements, where the low-level logic (e.g., communication, user interface) is written in C++, and the highly abstracted game logic is written in JavaScript.
 
 
 \chapter{Overview}
@@ -149,6 +151,11 @@ QuickJS is a JavaScript engine implementing the ECMAScript 2020 specification. I
 QuickJS uses POSIX for atomic operations and system time. Although this slightly limits its portability. Fortunately, ESP-IDF, the main target platform for Jaculus, supports POSIX. For supporting other platforms, a custom implementation of the interface would have to be provided.
 
 JavaScript program is executed in a Realm, which defines the execution environment (e.g., global object and set of built-in objects). QuickJS uses a different term for this concept -- Context, which I will be using throughout this thesis, as it is also used in the source code.
+
+
+\subsection{Jaculus device}
+
+A Jaculus device is a device that runs firmware built on top of the Jaculus-device-core library and which gives complete control over the device to the JavaScript runtime. The device can be controlled using the Jaculus-tools.
 
 
 \chapter{Jaculus-machine}
@@ -223,7 +230,7 @@ The created wrapper then automatically performs argument and return value type c
 
 \subsection{Class wrapping}
 
-The library provides an interface for defining JavaScript classes, which can contain opaque C++ objects. The user must first define a `ProtoBuilder` class, which tells the library how to construct the JavaScript object prototype. The class `jac::Class` can then be used to initialize the class in a given context, construct the JavaScript object or obtain its constructor.
+The library provides an interface for defining JavaScript classes, which can contain opaque C++ objects. The user must first define a `ProtoBuilder` class, which tells the library how to construct the JavaScript object prototype. The class `jac::Class` can then be used to initialize the class in a given Context, construct the JavaScript object or obtain its constructor.
 
 \subsection{Built-in *Features*}
 
@@ -281,7 +288,7 @@ machine.initialize();
 
 \subsection{Running JavaScript code}
 
-Using the `eval` method, the *Machine* can evaluate JavaScript code from a string. The `eval` method takes the code to evaluate, the filename of the code (used for error reporting), and a set of flags that control the evaluation context. The following code evaluates a simple "Hello, world!" program:
+Using the `eval` method, the *Machine* can evaluate JavaScript code from a string. The `eval` method takes the code to evaluate, the filename of the code (used for error reporting), and a set of flags that control the evaluation Context. The following code evaluates a simple "Hello, world!" program:
 
 ```cpp
 // jac::MachineBase::eval(std::string code, std::string filename, jac::EvalFlags flags)
@@ -457,7 +464,7 @@ void foo() {
 }
 ```
 
-  3. To use the class in a given context, the context must be initialized with the class definition:
+  3. To use the class in a given Context, the Context must be initialized with the class definition:
 
 ```cpp
 ContextRef ctx = ...;
@@ -480,27 +487,110 @@ void bar() {
 };
 ```
 
+\subsection{Creating new Features}
+
+To create a new Feature, the user must define a *Feature* class. The first template parameter of the call must be `Next` from which the class inherits. To add functionality to the machine, the class may:
+
+  - present a public interface to *Features* higher in the inheritance chain or to user of the *Machine*
+  - use the `initialize` method to add functionality to the JavaScript runtime
+
+The following code shows an example of a Feature that adds a `foo` property to the global object:
+
+```cpp
+template<typename Next>
+class MyFeature : public Next {
+    void initialize() {
+        jac::ContextRef ctx = this->_context;
+        jac::Object global = ctx.getGlobalObject();
+        global.defineProperty("foo", Value::from(ctx, 42));
+    }
+};
+```
+
+The user might also want to define a JavaScript module. This can be done using the `MachineBase::newModule` method:
+
+```cpp
+template<typename Next>
+class MyFeature : public Next {
+    void initialize() {
+        jac::ContextRef ctx = this->_context;
+
+        jac::Module& module = this->newModule("myModule");
+        module.addExport("foo", Value::from(ctx, 42));
+    }
+};
+```
+
 
 \chapter{Jaculus-link}
 
-\section{Features}
+The Jaculus-link library provides a mechanism for multiplexing multiple channels on a single stream connection and routing multiple channelized connections to a single consumer.
 
-  - multiplexing multiple channels on a single stream connection
-  - routing multiple channelized connections to a single consumer
+% \section{Features}
+
+%   - multiplexing multiple channels on a single stream connection
+%   - routing multiple channelized connections to a single consumer
 
 \section{Architecture}
 
-  - *Mux* - multiplexing multiple channels on a single stream connection
-  - *Router* - routing multiple channelized connections to a single consumer
-  - *Consumer* - interface for receiving data from a channel
+\subsection{Mux}
+
+The `jac::Mux` class allows the transmission of 256 virtual channels over a single stream connection. The class is a template parametrized by the used protocol. The connection is defined as an object implementing the `Duplex` interface.
+
+The protocol is defined by two types: `Packetizer` and `Serializer`. The `Packetizer` is responsible for decoding the incoming stream into packets, while the `Serializer` is responsible for encoding packets into the stream. The packets then contain the channel ID and the data.
+
+The `Mux` class implements a `ChannelTransmitter` interface, which allows sending data to a specified channel. It can be bound to an object implementing the `ChannelReceiver` interface, which is then used to process the received data.
+
+\subsection{Router}
+
+The `jac::Router` class allows routing packets from different connections to consumers depending on the channel ID and vice versa. The class allows binding `ChannelTransmitter` objects to different IDs and presents a `ChannelReceiver` interface on the same ID used to process the received packets.
+
+On the consumer side, objects implementing `jac::Consumer` interface can be bound to different channel IDs. The `Router` will then route the received packet data, paired with the connection ID, to the appropriate consumer.
+
+\subsection{Communicator}
+
+Different *Communicator* interfaces are used as an abstraction used by the application. The supplied *Communicator* interfaces are:
+
+  - `jac::OutputStreamCommunicator`
+  - `jac::BufferedInputStreamCommunicator`
+  - `jac::OutputPacketCommunicator`
+  - `jac::InputPacketCommunicator`
+
+*PacketCommunicator* types allow the usage of the underlying packetization. They do **not** guarantee any packet capacity, as they map directly to the underlying communication interfaces (e.g., `Mux`), which may use different packet sizes. They are, however, useful for data framing without any additional overhead.
+
+*StreamCommunicator* types, on the contrary, hide the underlying packetization and provide a stream-like interface.
+
+\subsection{Full Jaculus-link pipeline}
+
+The default configuration of the full pipeline provided by the library is shown in the diagram in Figure \ref{fig:link-pipeline}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{link-pipeline}
+    \caption{Default configuration of full Jaculus-link pipeline}
+    \label{fig:link-pipeline}
+\end{figure}
+
 
 \section{Implementation}
 
-  - ISO C++ 20
-  - no connection bindings
-  - protocol
+The library is implemented strictly using only C++ 20 standard library for easy portability. For this reason, no `Duplex` implementation is provided, and the user must provide one themselves.
+
+\subsection{Multiplexer protocol}
+
+The library provides one protocol for the multiplexer in the classes `jac::CobsPacketizer` and `jac::CobsSerializer`. The protocol uses the COBS ((TODO)) algorithm for data framing, which is paired with a CRC16 checksum.  Jaroslav Malec ((TODO)) originally proposed the use of this protocol for the predecessor version of the Jaculus project ((TODO: explain?)). A diagram showing the packet structure is shown in Figure \ref{fig:cobs-diagram}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{cobs-diagram}
+    \caption{COBS protocol packet structure}
+    \label{fig:cobs-diagram}
+\end{figure}
+
 
 \section{Usage}
+
+((TODO: is this even necessary?))
 
   - defining a Stream
   - configuring Mux
@@ -510,24 +600,70 @@ void bar() {
 
 \chapter{Jaculus-device-core}
 
-\section{Features}
+The Jaculus-device-core library provides a mechanism for defining a Jaculus device and controlling it.
 
-  - Jaculus-machine runtime
-  - communication via Jaculus-link
-  - control protocol for controlling and monitoring Jaculus-machine runtime
-  - uploader protocol for uploading code/data to Jaculus device
+It uses the Jaculus-machine library for the JavaScript runtime and the Jaculus-link library for communication.
+
+% \section{Features}
+
+%   - Jaculus-machine runtime
+%   - communication via Jaculus-link
+%   - control protocol for controlling and monitoring Jaculus-machine runtime
+%   - uploader protocol for uploading code/data to Jaculus device
 
 \section{Architecture}
 
-  - *Controller* - entry point for defining a Jaculus device and service for controlling it
-  - *Uploader* - service for uploading code/data to Jaculus device
-  - *Machine* - Jaculus-machine runtime
-  - central locking mechanism with a timeout to prevent multiple clients from accessing the device at the same time
+\subsection{Device class}
+
+The `jac::Device` class is the entry point for defining a Jaculus device. It is a template parametrized by the *Machine* type used for the JavaScript runtime. The *Machine* type must implement the `evalFile` method, which is used to run the code uploaded to the device.
+
+The `jac::Device` class exposes a `jac::Router` object, which is used to connect the device to the communication channel/s. `jac::Device` also exposes an interface for controlling the internal *Machine* instance from C++ code.
+
+Two services are also part of the `jac::Device` class and expose functionality over the communication channel/s:
+
+  - Uploader - service for uploading code/data to the device
+  - Controller - service for controlling and monitoring the device
+
+Each service uses a single channel provided by the `jac::Router` object. Other channels are also reserved for the standard input and output of the *Machine* instance and for a global logger instance.
+
+The `jac::Device` implements a locking mechanism to prevent multiple clients from accessing the device simultaneously. The lock is paired with a timeout, which is reset while the client communicates with the devices. If the timeout expires, the lock is released, and other clients can access the device. The lock is exposed to the client via the Controller service.
+
+  % - *Controller* - entry point for defining a Jaculus device and service for controlling it
+  % - *Uploader* - service for uploading code/data to Jaculus device
+  % - *Machine* - Jaculus-machine runtime
+  % - central locking mechanism with a timeout to prevent multiple clients from accessing the device at the same time
 
 \section{Implementation}
 
-  - ISO C++ 20, posix (esp + std::filesystem, QuickJS)
-  - Uploader, Controller protocols
+\subsection{Controller service}
+
+The Controller service is implemented in the `jac::Controller` class. It uses a *PacketCommunicator* interface to communicate with the client. The first byte of each packet is used to specify the command to be executed. The rest of the packet is used to transmit command-specific data.
+
+The service provides the following functionality:
+
+  - accessing the device lock
+  - controlling the internal *Machine* instance
+  - using the *Machine* instance's standard input and output
+  - monitoring the device status
+
+\subsection{Filesystem access}
+
+The Uploader service provides access to the filesystem of the device. Unfortunately, because `std::filesystem` is not yet fully implemented in ESP-IDF, the implementation has to, in some cases, rely on the POSIX filesystem API to be portable to the ESP platform.
+
+\subsection{Uploader service}
+
+The Uploader service is implemented in the `jac::Uploader` class. Similarly to the Controller service, it uses a *PacketCommunicator* interface to communicate with the client. The first byte of each packet is used to specify the command to be executed. The rest of the packet is used to transmit command-specific data.
+
+The service provides the following functionality:
+
+  - listing files and directories
+  - creating and deleting directories
+  - writing, reading, and deleting files
+
+Most commands are processed in a single packet, but writing files requires the data to be sent in multiple packets. When writing a file, an internal state is set to specify what operation should be performed when data is received and when the transmission is finished. To prevent overflow of the receiving buffer, the command implements, admittedly relatively inefficient, flow control -- the client must acknowledge each packet before the next one is sent.
+
+Commands for reading a file and listing a directory might also split the data into multiple packets. For simplicity, no flow control is implemented when transmitting data to the client, as the client is expected to be a much more powerful device that can handle the transmission.
+
 
 \section{Usage}
 
@@ -569,8 +705,8 @@ void bar() {
 
 \chapter{Pitfalls}
 
-\section{Only one context per Machine}
-From the beginning, the design of Jaculus-machine was to have only one context per machine. It seemed not to be a limiting factor and simplified implementation. Now it starts to show it was a wrong decision and proves to be a limitation in some cases.
+\section{Only one Context per Machine}
+From the beginning, the design of Jaculus-machine was to have only one Context per machine. It seemed not to be a limiting factor and simplified implementation. Now it starts to show it was a wrong decision and proves to be a limitation in some cases.
 
 For example, in REPL, all exceptions should be caught and reported to standard output. When starting REPL from a JavaScript program, the main program should crash on unhandled exceptions, whereas the REPL should not. Implementation of this would require REPL and the main program to be executed in separate contexts to distinguish between their behavior regarding exception handling.
 
@@ -598,13 +734,13 @@ Fortunately, this is not a problem for well-written code, which handles all prom
 To fix this, modifying QuickJS internals would be required, which is outside the scope of this work, but it is an essential consideration for future work.
 
 
-  % - no debugger - QuickJS does not support debugging
 
+  - filesystem
 
 
 \chapter{Comparison with existing solutions}
 
-  - Minimum C/C++ (e.g. ESP-IDF)
+  - Minimum C/C++ (e.g., ESP-IDF)
   - Arduino (C/C++)
   - NodeMCU (Lua)
   - CircuitPython (Python)
@@ -615,6 +751,7 @@ To fix this, modifying QuickJS internals would be required, which is outside the
   - extensibility
   - usability
   - features
+  % - no debugger - QuickJS does not support debugging
 
 
 \chapter{Future work}
@@ -624,6 +761,7 @@ To fix this, modifying QuickJS internals would be required, which is outside the
   - debugger?
   - add more features
   - support more platforms (e.g. STM32, RPi)
+  - uploader protocol optimization and stability improvements
 
 \shorthandon{'}
 \end{markdown*}
