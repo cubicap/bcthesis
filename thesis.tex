@@ -124,7 +124,7 @@ The whole solution is split into multiple components:
   - Jaculus-link -- standalone communication library for multiplexing multiple channels on a single stream connection
   - Jaculus-device-core -- core library for creating new Jaculus devices
   - Jaculus-tools -- a command-line application for controlling and monitoring Jaculus devices
-  - Jaculus-esp32 -- Jaculus device port for the ESP32 platform (with verified support for ESP32 and ESP32-S3)
+  - Jaculus-esp32 -- Jaculus device port for the ESP32 platform (with verified support for ESP32 and ESP32-S3 WROOM modules)
 
 This approach allows for the creation of Jaculus devices, which give complete control over the device to the JavaScript runtime, or applications whose main logic is written in C++ and which only embed the JavaScript runtime as a part of the application. The use case for the latter are, for example, devices used as game elements, where the low-level logic (e.g., communication, user interface) is written in C++, and the highly abstracted game logic is written in JavaScript.
 
@@ -676,7 +676,7 @@ It could also be used as a library for building custom applications, but it is n
 
 The package is implemented in TypeScript and requires Node.js 18 to run. It can be installed using npm:
 
-```sh
+```
 $ npm install -g jaculus-tools
 ```
 
@@ -685,6 +685,7 @@ $ npm install -g jaculus-tools
 
 The application provides the following commands:
 
+  - `help` -- prints help for the specified command
   - `list-ports` -- lists available serial ports
   - `serial-socket` -- tunnels a serial port over a TCP socket
   - `install` -- installs the Jaculus device firmware
@@ -705,7 +706,7 @@ The application provides the following commands:
 
 The commands are run by specifying them after the `jac` command.
 
-```sh
+```
 $ jac <command> [options] [arguments]
 ```
 
@@ -719,7 +720,7 @@ The commands can also access and modify a global state object passed to each com
 
 For example, the following command:
 
-```sh
+```
 $ jac --port /dev/ttyUSB0 build flash monitor
 ```
 
@@ -727,14 +728,14 @@ Will run the three specified commands -- build, flash, monitor -- in sequence. T
 
 Command-line options are divided into two types -- global and command-specific. Options can be specified in any place of the command, as the parsing is done in multiple passes for each specified command. The global options are parsed first, then options of the first command are extracted, then of the second, and so on. Each command then receives only its and the global options. This forces the commands to use different names for their options, as otherwise, preceding commands might extract them. For example, the following two commands would be parsed the same way:
 
-```sh
+```
 $ jac --port /dev/ttyUSB0 build flash monitor
 $ jac build flash monitor --port /dev/ttyUSB0
 ```
 
 The commands can also specify standard arguments, which are parsed after the options:
 
-```sh
+```
 $ jac --port /dev/ttyUSB0 read ./code/index.js
 ```
 
@@ -751,12 +752,25 @@ The application provides access to the device via the `Device` class. The class 
   - standard input and output of the running program
   - output of the device logger
 
+\subsection{TypeScript code compilation}
+
+
 
 \chapter{Jaculus-esp32}
 
+Jaculus-esp32 is a Jaculus device firmware for the ESP32 family of microcontrollers. It is implemented using the ESP-IDF framework and the Jaculus-device-core library.
+
 \section{Features}
 
-  - support for basic peripherals (GPIO, ADC, LEDC, Neopixel)
+Aside from the features provided by Jaculus-device-core, Jaculus-esp32 only provides control over the most basic peripherals, which are:
+
+  - GPIO -- general-purpose input/output pins
+  - ADC -- analog-to-digital converter
+  - LEDC -- generator of PWM signals
+  - Neopixel -- WS2812B smart LED strip
+
+Jaculus-esp32 also implements a specialized event queue based directly on FreeRTOS queues, supporting scheduling events from an interrupt context. This is used in the GPIO feature for generating events on the input signal change.
+
 
 \section{Usage}
 
@@ -766,14 +780,15 @@ The application provides access to the device via the `Device` class. The class 
 
 \chapter{Pitfalls}
 
-\section{Only one Context per Machine}
+\section{Only one Context per Machine instance}
 
-From the beginning, the design of Jaculus-machine was to have only one Context per machine. It seemed not to be a limiting factor and simplified implementation. Now it starts to show it was a wrong decision and proves to be a limitation in some cases.
+From the beginning, the design of Jaculus-machine was to have only one Context per machine. It seemed not to be a limiting factor and simplified implementation. Now it starts to show it was a wrong decision and proves to be a limiting factor in some cases.
 
 For example, in REPL, all exceptions should be caught and reported to standard output. When starting REPL from a JavaScript program, the main program should crash on unhandled exceptions, whereas the REPL should not. Implementation of this would require REPL and the main program to be executed in separate contexts to distinguish between their behavior regarding exception handling.
 
 
 \section{Unhandled promise rejections not being reported}
+
 This is a limitation of QuickJS. Although QuickJS does have a mechanism for reporting unhandled promise rejections, it reports some false positives. Consider the following example:
 
 ``` js
@@ -791,13 +806,23 @@ console.log("after");
 
 The promise is created and immediately rejected. At that moment, the promise does not have a rejection handler, and thus QuickJS reports an unhandled promise rejection. However, the handler is added before the promise goes out of scope and handles the rejection.
 
-Fortunately, this is not a problem for well-written code, which handles all promise rejections. However, when an unhandled promise rejection occurs, it is not reported, which may lead to errors that are difficult to debug.
+Fortunately, this is not a problem for well-written code, which handles all possible promise rejections. However, when an unhandled promise rejection occurs, it is not reported, which may lead to errors that are difficult to debug.
 
 To fix this, modifying QuickJS internals would be required, which is outside the scope of this work, but it is an essential consideration for future work.
 
 
+\section{ESP32 filesystem}
 
-  - filesystem
+As the filesystem *Feature* is implemented using C++ `std::filesystem`, which is not yet fully supported by the ESP-IDF, some of its functionality might not work, and some may even block the runtime.
+
+The broken functionality involves listing directories -- `readdir` and `rmdir`. Fortunately, working with files works without a problem, which is an essential functionality.
+
+
+\section{Compatibility with other platforms}
+
+Through implementing all of the created libraries, I have focused on only using the standard C++ library. This worked well for development, as all of the functionality could be tested locally on a desktop PC, and later everything could be easily integrated with the ESP-IDF. Unfortunately, after briefly exploring development options of platforms other than ESP32 (e.g., STM32, RP2040), I have discovered that the C++ 20 standard is not well supported.
+
+This has dealt a significant blow to the portability of the created libraries, which will have to be partially rewritten to support other platforms. Primarily, an abstraction layer around the filesystem and asynchronous elements (e.g., threads, synchronization primitives) will have to be implemented.
 
 
 \chapter{Comparison with existing solutions}
