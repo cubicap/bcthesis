@@ -140,7 +140,7 @@ Although JavaScript programs are event-driven, the code is executed in a single 
 
 \subsection{TypeScript}
 
-TypeScript is a strongly typed superset of JavaScript. It is developed and maintained by Microsoft. Typescript is compiled to JavaScript and can be used in any JavaScript environment that supports the selected ECMAScript version.
+TypeScript is a strongly typed superset of JavaScript. It is developed and maintained by Microsoft. TypeScript is compiled to JavaScript and can be used in any JavaScript environment that supports the selected ECMAScript version.
 
 
 \subsection{QuickJS}
@@ -352,7 +352,7 @@ If wrapped C++ code throws an exception, it will be wrapped to a JavaScript exce
   - `std::exception` -- the exception is converted to an `Error` object with the exception message
   - any other exception -- the exception is converted to an `Error` object with the message "unknown exception"
 
-To create a `jac::Exception` that will be converted to a specified `Error` type, the `jac::Exception::create` method can be used:
+To create a `jac::Exception` that will be thrown to JavaScript as a specified `Error` type, the `jac::Exception::create` method can be used:
 
 ```cpp
 ContextRef ctx = ...;
@@ -360,7 +360,7 @@ ContextRef ctx = ...;
 jac::Exception::create(ctx, jac::Exception::Type::TypeError, "invalid argument");
 ```
 
-To create a `jac::Exception` that will be converted to a specified value, the value can be converted to a `jac::Exception` using the `jac::ValueWrapper::to` method:
+To create a `jac::Exception` that will be thrown to JavaScript as a specified value, the value can be converted to a `jac::Exception` using the `jac::ValueWrapper::to` method:
 
 ```cpp
 ContextRef ctx = ...;
@@ -523,7 +523,7 @@ class MyFeature : public Next {
 
 \chapter{Jaculus-link}
 
-The Jaculus-link library provides a mechanism for multiplexing multiple channels on a single stream connection and routing multiple channelized connections to a single consumer.
+Jaculus-link is a standalone communication library that provides a mechanism for multiplexing multiple channels on a single stream connection and routing multiple channelized connections to a single consumer.
 
 % \section{Features}
 
@@ -577,7 +577,7 @@ The library is implemented strictly using only C++ 20 standard library for easy 
 
 \subsection{Multiplexer protocol}
 
-The library provides one protocol for the multiplexer in the classes `jac::CobsPacketizer` and `jac::CobsSerializer`. The protocol uses the COBS ((TODO)) algorithm for data framing, which is paired with a CRC16 checksum.  Jaroslav Malec ((TODO)) originally proposed the use of this protocol for the predecessor version of the Jaculus project ((TODO: explain?)). A diagram showing the packet structure is shown in Figure \ref{fig:cobs-diagram}.
+The library provides one protocol for the multiplexer in the classes `jac::CobsPacketizer` and `jac::CobsSerializer`. The protocol uses the COBS ((TODO)) algorithm for data framing, which is paired with a CRC16 checksum.  Jaroslav Malec ((TODO)) originally proposed the use of this protocol for the predecessor version of the Jaculus project ((TODO: explain?)). Figure \ref{fig:cobs-diagram} shows a diagram describing the packet structure.
 
 \begin{figure}[ht]
     \centering
@@ -585,6 +585,8 @@ The library provides one protocol for the multiplexer in the classes `jac::CobsP
     \caption{COBS protocol packet structure}
     \label{fig:cobs-diagram}
 \end{figure}
+
+The delimiter byte at the start of the packet allows for resetting the packetization state in case a packet is lost, malformed, or other corrupted data is received.
 
 
 \section{Usage}
@@ -627,10 +629,6 @@ Each service uses a single channel provided by the `jac::Router` object. Other c
 
 The `jac::Device` implements a locking mechanism to prevent multiple clients from accessing the device simultaneously. The lock is paired with a timeout, which is reset while the client communicates with the devices. If the timeout expires, the lock is released, and other clients can access the device. The lock is exposed to the client via the Controller service.
 
-  % - *Controller* - entry point for defining a Jaculus device and service for controlling it
-  % - *Uploader* - service for uploading code/data to Jaculus device
-  % - *Machine* - Jaculus-machine runtime
-  % - central locking mechanism with a timeout to prevent multiple clients from accessing the device at the same time
 
 \section{Implementation}
 
@@ -672,22 +670,86 @@ Commands for reading a file and listing a directory might also split the data in
 
 \chapter{Jaculus-tools}
 
+Jaculus-tools is primarily a command-line application for interacting with Jaculus devices. The application allows users to control and monitor the JavaScript runtime and access the internal filesystem of the device.
+
+It could also be used as a library for building custom applications, but it is not documented. The user might want to look at the source code of the command-line application part of the package for inspiration.
+
+The package is implemented in TypeScript and requires Node.js 18 to run. It can be installed using npm:
+
+```sh
+$ npm install -g jaculus-tools
+```
+
+
 \section{Features}
 
-  - access to Jaculus devices via Uploader and Controller protocols
-  - command-line tool
-  - Node.js library
-  - transpile TypeScript code
+The application provides the following commands:
+
+  - `list-ports` -- lists available serial ports
+  - `serial-socket` -- tunnels a serial port over a TCP socket
+  - `install` -- installs the Jaculus device firmware
+  - `build` -- builds the TypeScript code
+  - `ls`
+  - `read`
+  - `write`
+  - `rm`
+  - `mkdir`
+  - `rmdir`
+  - `upload`
+  - `flash`
+  - `pull`
+  - `start` -- runs specified file in the device
+  - `stop` -- stops the currently running file
+  - `status` -- prints the status of the device
+  - `monitor` -- connects to the device's standard input and output
+
+The commands are run by specifying them after the `jac` command.
+
+```sh
+$ jac <command> [options] [arguments]
+```
 
 \section{Implementation}
 
-  - TypeScript
-  - access to Jaculus device services via JacDevice class
+\subsection{Command-line argument parser}
 
-\section{Usage}
+The application uses a custom parser for command-line arguments, which allows for chaining compatible commands.
 
-  - command-line tool
-  - Node.js library
+The commands can also access and modify a global state object passed to each command. This allows for commands to share data.
+
+For example, the following command:
+
+```sh
+$ jac --port /dev/ttyUSB0 build flash monitor
+```
+
+Will run the three specified commands -- build, flash, monitor -- in sequence. The `build` command compiles the code and saves the compiled code to `build` directory. The `flash` command connects to the device, saves the device to the parser state, and uploads the code. The `monitor` command uses the saved device to access its standard input and output without reconnecting.
+
+Command-line options are divided into two types -- global and command-specific. Options can be specified in any place of the command, as the parsing is done in multiple passes for each specified command. The global options are parsed first, then options of the first command are extracted, then of the second, and so on. Each command then receives only its and the global options. This forces the commands to use different names for their options, as otherwise, preceding commands might extract them. For example, the following two commands would be parsed the same way:
+
+```sh
+$ jac --port /dev/ttyUSB0 build flash monitor
+$ jac build flash monitor --port /dev/ttyUSB0
+```
+
+The commands can also specify standard arguments, which are parsed after the options:
+
+```sh
+$ jac --port /dev/ttyUSB0 read ./code/index.js
+```
+
+\subsection{Connection to the device}
+
+The application implements a simplified version of the interface described in ((TODO - Jaculus-link)) -- the `Router` class is omitted, as connection to multiple devices is pointless. Aside from that and language choice (TypeScript), the implementation is almost identical.
+
+\subsection{Device access}
+
+The application provides access to the device via the `Device` class. The class exposes the following functionality to the user:
+
+  - device lock
+  - Controller and Uploader services
+  - standard input and output of the running program
+  - output of the device logger
 
 
 \chapter{Jaculus-esp32}
@@ -705,6 +767,7 @@ Commands for reading a file and listing a directory might also split the data in
 \chapter{Pitfalls}
 
 \section{Only one Context per Machine}
+
 From the beginning, the design of Jaculus-machine was to have only one Context per machine. It seemed not to be a limiting factor and simplified implementation. Now it starts to show it was a wrong decision and proves to be a limitation in some cases.
 
 For example, in REPL, all exceptions should be caught and reported to standard output. When starting REPL from a JavaScript program, the main program should crash on unhandled exceptions, whereas the REPL should not. Implementation of this would require REPL and the main program to be executed in separate contexts to distinguish between their behavior regarding exception handling.
