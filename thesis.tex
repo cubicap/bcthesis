@@ -47,7 +47,7 @@
 \usepackage{paralist}
 \usepackage{url}
 \usepackage{markdown}
-\def\markdownRendererCodeSpan#1{\colorbox{gray!10}{#1}}
+% \def\markdownRendererCodeSpan#1{\colorbox{gray!10}{#1}}
 \usepackage{listings}
 \lstset{
   basicstyle       = \small\ttfamily,
@@ -102,21 +102,44 @@
 
 \chapter{Motivation}
 
-Microcontrollers in embedded devices are typically programmed in compiled languages, such as C, C++, or Rust. Although these languages provide high performance and low overhead at runtime, they can be difficult to learn and use. Another problem of compiled languages in embedded environments is often a long build and deployment time, as the final executable usually contains the full firmware, including all built-in libraries. This, in turn, causes a long development cycle and idle time for the developer.
+Microcontrollers in embedded devices are typically programmed in compiled languages, such as C, C++, or Rust. Although these languages provide high performance and low overhead at runtime, they can be difficult to learn and use.
 
-Most embedded applications have reactive and asynchronous elements, which are difficult to express in low-level languages. This induces a lot of boilerplate code, which obfuscates the main application logic and makes it harder to develop and maintain. Even though high-level languages such as C++ and Rust somewhat alleviate this problem, C is often the only language with direct support from the manufacturers, which again adds more work for the developer.
+Another problem of compiled languages in embedded environments is a long development cycle. One cause is that the executable of such applications is usually self-contained. It contains all used libraries, including the standard ones, besides the application itself, which must be compiled and linked on every build, regardless of whether they have changed. Another cause is that uploading the executable to the device memory is often slow. The build-deploy process can take several minutes, severely hindering development speed, especially in the early development stages when the developer rapidly iterates over the code.
+
+As embedded devices often interact with the physical world or communicate with other devices, they often have to wait for external events rather than actively performing some computation. Therefore, most embedded applications have reactive and asynchronous elements, which are difficult to express in low-level languages. This induces a lot of boilerplate code, which obfuscates the main application logic and makes it harder to develop and maintain. Even though high-level languages such as C++ and Rust somewhat alleviate this problem, C is often the only language with direct support from the manufacturers, adding more work for the developer.
 
 \chapter{Proposed solution}
 
-The proposed solution is to use a high-level, interpreted language instead.
+The proposed solution is to use a high-level, interpreted language instead. The language has to:
 
-JavaScript was chosen for its popularity and low hardware requirements of some of its implementations. It also maps very well to the event-centered nature of many embedded systems, as JavaScript is inherently event-driven.
+  - have low enough hardware requirements to run on a microcontroller
+  - be easy to learn and use
+  - be able to express reactive and asynchronous elements
+  - be embeddable in C/C++ applications
+
+Three popular options are Python, Lua, and JavaScript.
+
+Python is a general-purpose language with an extensive standard library, which makes it suitable for many applications. However, it is not suitable for embedded devices due to its high memory requirements caused by the large standard library.
+
+Lua is a lightweight scripting language with a small standard library. It is suitable for embedded devices but not as popular as Python and JavaScript, making it harder to find relevant resources and justify learning a new language. There are interpreters of Lua, which are embeddable in C/C++ applications.
+
+JavaScript is a popular language commonly used in web browsers. The language specification defines a small standard library, which is extended by the runtime environment, meaning a small memory footprint. It also maps very well to the event-centered nature of many embedded systems, as JavaScript is inherently event-driven. Multiple embeddable JavaScript engines exist, such as DukTape, MuJS, and QuickJS.
+
+For the reasons above, JavaScript was chosen as the language of choice.
 
 Because JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as compiling or running TypeScript on a microcontroller is not feasible, it must first be compiled to JavaScript.
 
 \chapter{Approach}
 
-A JavaScript engine is needed to interpret JavaScript code. The chosen engine is QuickJS, a small, embeddable C implementation of the ECMAScript 2020 specification. Compared to other popular options -- DukTape, MujJS, and XS -- it stands on a nice middle ground regarding the feature set, performance, and memory footprint.
+A JavaScript engine is needed to interpret JavaScript code. There are multiple options, the popular ones being V8, DukTape, MuJS, QuickJS.
+
+The V8 engine is the most popular JavaScript engine, used in Google Chrome and Node.js. It is a high-performance engine with a very large memory footprint, making it unsuitable for embedded devices.
+
+DukTape and MuJS are small, embeddable JavaScript engines. They are suitable for embedded devices but support old versions of the ECMAScript specification.
+
+QuickJS is a small, embeddable JavaScript engine that supports the ECMAScript 2020 specification. On a desktop platform, it is 2-4 times faster ((TODO)) than DukTape and MuJS, with a small memory footprint, which makes it suitable for embedded devices.
+
+The chosen engine is QuickJS. Compared to other popular options, it stands on a nice middle ground regarding the feature set, performance, and memory footprint.
 
 The whole solution is split into multiple components:
 
@@ -172,7 +195,7 @@ Jaculus-machine uses two core concepts, which I will refer to as *Machine* and *
 
 \subsection{Machine and Features}
 
-*Machine* is defined using stack inheritance from `jac::MachineBase` and selected *Feature* classes. The `jac::MachineBase` class provides only the most basic functionality of the runtime, whereas the *Feature* classes provide additional functionality, such as an event loop, filesystem access, etc.
+*Machine* is defined using stack inheritance from `jac::MachineBase` and selected *Feature* classes. The `jac::MachineBase` class provides only the most basic functionality of the runtime, whereas the *Feature* classes implement additional functionality, such as an event loop, filesystem access, etc.
 
 An example definition of a *Machine* type may look like this:
 
