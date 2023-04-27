@@ -129,55 +129,86 @@ For the reasons above, JavaScript was chosen as the language of choice.
 
 Because JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as compiling or running TypeScript on a microcontroller is not feasible, it must first be compiled to JavaScript.
 
-\chapter{Approach}
-
-A JavaScript engine is needed to interpret JavaScript code. There are multiple options, the popular ones being V8, DukTape, MuJS, QuickJS.
-
-The V8 engine is the most popular JavaScript engine, used in Google Chrome and Node.js. It is a high-performance engine with a very large memory footprint, making it unsuitable for embedded devices.
-
-DukTape and MuJS are small, embeddable JavaScript engines. They are suitable for embedded devices but support old versions of the ECMAScript specification.
-
-QuickJS is a small, embeddable JavaScript engine that supports the ECMAScript 2020 specification. On a desktop platform, it is 2-4 times faster ((TODO)) than DukTape and MuJS, with a small memory footprint, which makes it suitable for embedded devices.
-
-The chosen engine is QuickJS. Compared to other popular options, it stands on a nice middle ground regarding the feature set, performance, and memory footprint.
-
-The whole solution is split into multiple components:
-
-  - Jaculus-machine -- standalone, embeddable, C++ centric JavaScript runtime using QuickJS at its core
-  - Jaculus-link -- standalone communication library for multiplexing multiple channels on a single stream connection
-  - Jaculus-device-core -- core library for creating new Jaculus devices
-  - Jaculus-tools -- a command-line application for controlling and monitoring Jaculus devices
-  - Jaculus-esp32 -- Jaculus device port for the ESP32 platform (with verified support for ESP32 and ESP32-S3 WROOM modules)
-
-This approach allows for the creation of Jaculus devices, which give complete control over the device to the JavaScript runtime, or applications whose main logic is written in C++ and which only embed the JavaScript runtime as a part of the application. The use case for the latter are, for example, devices used as game elements, where the low-level logic (e.g., communication, user interface) is written in C++, and the highly abstracted game logic is written in JavaScript.
-
 
 \chapter{Overview}
 
-\subsection{JavaScript}
+The main task is to create a JavaScript runtime environment for microcontrollers and an ecosystem around it for managing the device and developing applications for it.
 
-JavaScript is a high-level, interpreted, weakly and dynamically typed programming language. It is standardized in the ECMAScript specification, which is maintained by Ecma International.
+The runtime should primarily focus on the ESP32 and ESP32-S3 microcontrollers, as they are prevalent in the maker community and provide high performance at a low price.
+
+
+\section{Runtime environment}
+
+The runtime environment should be able to run JavaScript code and be easily extensible with functionality implemented in C++. The runtime should be usable as the main interface for programming the device and as a component of a larger application.
+
+An example use case for the latter is in a system of devices used as game elements. Their low-level logic (e.g., communication, user interface) can be implemented in C++, while the high-level logic (e.g., game rules) can be updated independently by the user.
+
+\section{JavaScript engine}
+
+A JavaScript engine is needed to interpret JavaScript code. Implementing a custom JavaScript engine would be a significant undertaking, so an existing one is used instead. There are multiple options, the popular ones being V8, DukTape, MuJS, QuickJS.
+
+The V8 engine is the most popular JavaScript engine, used in Google Chrome and Node.js. It is a high-performance engine with a very large memory footprint, making it impossible to run on a microcontroller.
+
+DukTape and MuJS are small, embeddable JavaScript engines. They are suitable for embedded devices but support old versions of the ECMAScript specification.
+
+QuickJS is a small, embeddable JavaScript engine that supports the ECMAScript 2020 specification. On a desktop platform, it is 2-4 times faster ((TODO)) than DukTape and MuJS, for the price of a larger memory footprint, which is still small enough to run on a microcontroller.
+
+The final solution uses QuickJS. Compared to the other options, it stands on a nice middle ground regarding its feature set, performance, and memory footprint.
+
+\section{Communication}
+
+There should be a way to communicate with the device --- to upload code, control the runtime and monitor the device's state.
+
+Most microcontrollers feature a serial interface, such as a USB to UART bridge or a native USB interface. The interface, however, only provides a single duplex byte stream, meaning a protocol must be implemented on top of it to support multiple services over a single connection.
+
+The used protocol allows multiplexing discrete communication channels over a single byte stream.
+
+\section{Tooling}
+
+A suitable tooling should be created to support the development of applications for the device. The tools should allow the user to upload code to the device, control the runtime, and monitor the device's state.
+
+\section{Implementation}
+
+To achieve the goals described above and to allow possible future use of reusable code, the project is split into multiple parts:
+
+  - Jaculus-machine -- standalone, embeddable, C++ centric JavaScript runtime using QuickJS at its core
+  - Jaculus-link -- standalone communication library for multiplexing multiple channels on a single stream connection
+  - Jaculus-dcore -- core library for creating new Jaculus devices
+  - Jaculus-tools -- a command-line application for controlling and monitoring Jaculus devices
+  - Jaculus-esp32 -- Jaculus device port for the ESP32 platform (with support for ESP32 and ESP32-S3 SOCs)
+
+\section{Jaculus device}
+
+A Jaculus device is a device that runs the full firmware built on top of the Jaculus-device-core library and which gives complete control over the device to the JavaScript runtime. Jaculus-tools can be used to control and monitor the device.
+
+
+\chapter{Used technologies}
+
+This chapter briefly describes some selected technologies used in the project and some of their specifics.
+
+\section{ESP-IDF}
+
+ESP-IDF is the official development framework for microcontrollers from Espressif Systems. The framework is based on FreeRTOS and provides a set of libraries and tools for developing applications for ESP32 and ESP32-S3 microcontrollers.
+
+Most of the provided libraries have only a C API. The framework also provides a large subset of the C++20 standard library. However, some parts of the standard library do not work entirely correctly (e.g., std::filesystem).
+
+\section{JavaScript}
+
+JavaScript is a high-level, interpreted, weakly, and dynamically typed programming language. It is standardized in the ECMAScript specification, which is maintained by Ecma International.
 
 Although JavaScript programs are event-driven, the code is executed in a single thread. This is achieved by using an event loop, where asynchronous events are queued and executed in the order they are received. Therefore, JavaScript programs must be written in a non-blocking manner, as blocking the event loop will cause the program to stop responding to events. Events are generated by the JavaScript engine or the host environment both synchronously and asynchronously.
 
+\section{TypeScript}
 
-\subsection{TypeScript}
+TypeScript is a strongly typed superset of JavaScript. It is developed and maintained by Microsoft. TypeScript is compiled into JavaScript and can be used in any JavaScript environment that supports the specified ECMAScript version.
 
-TypeScript is a strongly typed superset of JavaScript. It is developed and maintained by Microsoft. TypeScript is compiled to JavaScript and can be used in any JavaScript environment that supports the selected ECMAScript version.
-
-
-\subsection{QuickJS}
+\section{QuickJS}
 
 QuickJS is a JavaScript engine implementing the ECMAScript 2020 specification. It was developed by Fabrice Bellard and is licensed under the MIT license. It is written in C and is designed to be embeddable in other applications.
 
 QuickJS uses POSIX for atomic operations and system time. Although this slightly limits its portability. Fortunately, ESP-IDF, the main target platform for Jaculus, supports POSIX. For supporting other platforms, a custom implementation of the interface would have to be provided.
 
 JavaScript code is evaluated in a Realm ((TODO: link spec)), which defines the execution environment (e.g., global object and set of built-in objects). QuickJS uses a different term for this concept -- Context, which I will be using throughout this thesis, as it is also used in the source code.
-
-
-\subsection{Jaculus device}
-
-A Jaculus device is a device that runs firmware built on top of the Jaculus-device-core library and which gives complete control over the device to the JavaScript runtime. The device can be controlled using the Jaculus-tools.
 
 
 \chapter{Jaculus-machine}
@@ -796,7 +827,7 @@ Jaculus-esp32 also implements a specialized event queue based directly on FreeRT
   - flash using Jaculus-tools
 
 
-\chapter{Pitfalls}
+\chapter{Limitations}
 
 \section{Only one Context per Machine instance}
 
