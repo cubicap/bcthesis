@@ -136,6 +136,8 @@ The main task is to create a JavaScript runtime environment for microcontrollers
 
 The runtime should primarily focus on the ESP32 and ESP32-S3 microcontrollers, as they are prevalent in the maker community and provide high performance at a low price.
 
+A firmware for a microcontroller, which gives complete control over the device to the JavaScript runtime and provides an interface for programming and controlling the device, should be created. A device running this firmware will be called a *JavaScript device*.
+
 
 \section{Runtime environment}
 
@@ -169,17 +171,13 @@ A suitable tooling should be created to support the development of applications 
 
 \section{Implementation}
 
-To achieve the goals described above and to allow possible future use of reusable code, the project is split into multiple parts:
+To achieve the goals described above and to allow possible future reuse of independent components, the project is split into multiple parts:
 
   - Jaculus-machine -- standalone, embeddable, C++ centric JavaScript runtime using QuickJS at its core
   - Jaculus-link -- standalone communication library for multiplexing multiple channels on a single stream connection
   - Jaculus-dcore -- core library for creating new Jaculus devices
-  - Jaculus-tools -- a command-line application for controlling and monitoring Jaculus devices
+  - Jaculus-tools -- command-line application for controlling and monitoring Jaculus devices
   - Jaculus-esp32 -- Jaculus device port for the ESP32 platform (with support for ESP32 and ESP32-S3 SOCs)
-
-\section{Jaculus device}
-
-A Jaculus device is a device that runs the full firmware built on top of the Jaculus-device-core library and which gives complete control over the device to the JavaScript runtime. Jaculus-tools can be used to control and monitor the device.
 
 
 \chapter{Used technologies}
@@ -190,7 +188,7 @@ This chapter briefly describes some selected technologies used in the project an
 
 ESP-IDF is the official development framework for microcontrollers from Espressif Systems. The framework is based on FreeRTOS and provides a set of libraries and tools for developing applications for ESP32 and ESP32-S3 microcontrollers.
 
-Most of the provided libraries have only a C API. The framework also provides a large subset of the C++20 standard library. However, some parts of the standard library do not work entirely correctly (e.g., std::filesystem).
+Most of the provided libraries have only a C API. The framework also supports C++20 with a large subset of its standard library. However, some parts of the standard library do not work entirely correctly (e.g., `std::filesystem`).
 
 \section{JavaScript}
 
@@ -200,64 +198,67 @@ Although JavaScript programs are event-driven, the code is executed in a single 
 
 \section{TypeScript}
 
-TypeScript is a strongly typed superset of JavaScript. It is developed and maintained by Microsoft. TypeScript is compiled into JavaScript and can be used in any JavaScript environment that supports the specified ECMAScript version.
+TypeScript is a strongly typed superset of JavaScript. It is developed and maintained by Microsoft. TypeScript is typically not interpreted directly and is instead compiled into JavaScript, which can be interpreted using any JavaScript runtime that supports the specified ECMAScript version.
 
 \section{QuickJS}
 
 QuickJS is a JavaScript engine implementing the ECMAScript 2020 specification. It was developed by Fabrice Bellard and is licensed under the MIT license. It is written in C and is designed to be embeddable in other applications.
 
-QuickJS uses POSIX for atomic operations and system time. Although this slightly limits its portability. Fortunately, ESP-IDF, the main target platform for Jaculus, supports POSIX. For supporting other platforms, a custom implementation of the interface would have to be provided.
+QuickJS uses POSIX to implement atomic operations and system time. Although this slightly limits its portability, ESP-IDF, the primary target platform for Jaculus, supports POSIX.
 
-JavaScript code is evaluated in a Realm ((TODO: link spec)), which defines the execution environment (e.g., global object and set of built-in objects). QuickJS uses a different term for this concept -- Context, which I will be using throughout this thesis, as it is also used in the source code.
+JavaScript code is evaluated in a *Realm* ((TODO: link spec)), which defines the execution environment (e.g., global object and set of built-in objects). QuickJS uses a different term for this concept -- Context, which I have adopted for Jaculus and will be used throughout the rest of this thesis.
 
 
-\chapter{Jaculus-machine}
+\chapter{Jaculus machine}
 
 Jaculus-machine is a standalone, embeddable, C++ centric JavaScript runtime based on QuickJS. The main goal of Jaculus-machine is to provide a simple and easy-to-use API for adding features to the runtime.
 
-A large part of Jaculus-machine is a set of C++ classes that wrap the QuickJS API. The classes provide RAII semantics and an easy-to-use API for the most common use cases.
+A large portion of Jaculus-machine is a set of C++ classes that wrap the QuickJS API. The classes provide RAII semantics and an easy-to-use API for routine use cases.
 
-Jaculus-machine uses two core concepts, which I will refer to as *Machine* and *Feature* throughout the rest of this thesis.
+Jaculus-machine uses two core concepts, which will be referred to as *Machine* and *MFeature* throughout the rest of this thesis.
 
-  - *Machine* -- an instance of the runtime complete with all the selected *Features*
-  - *Feature* -- a component that can be used as a part of a *Machine* and which provides functionality to the runtime or to other *Features*
+  - Machine -- an instance of the runtime complete with all the selected MFeatures
+  - MFeature -- a component that can be used as a part of a Machine and which provides functionality to the runtime or to other MFeatures
 
 \section{Architecture}
 
-\subsection{Machine and Features}
+The main entry point of the library is a Machine object. After a Machine is created and initialized, it can be used to access the JavaScript runtime.
 
-*Machine* is defined using stack inheritance from `jac::MachineBase` and selected *Feature* classes. The `jac::MachineBase` class provides only the most basic functionality of the runtime, whereas the *Feature* classes implement additional functionality, such as an event loop, filesystem access, etc.
+\subsection{Machine and MFeatures}
 
-An example definition of a *Machine* type may look like this:
+Machine is defined using templated stack inheritance from `MachineBase` and selected MFeature classes. The `MachineBase` class provides the core functionality of the runtime, and the MFeature classes implement additional functionality, such as an event loop, filesystem access, etc.
+
+An example definition of a Machine type may look like this:
 
 ```cpp
-using Machine =
-    ModuleLoaderFeature<
-    FilesystemFeature<
-    StdioFeature<
-    BasicStreamFeature<
-    jac::MachineBase
->>>>;
+using Machine = ComposeMachine<
+    ModuleLoaderFeature,
+    FilesystemFeature,
+    StdioFeature,
+    BasicStreamFeature,
+    MachineBase
+>;
 ```
 
-The stack design of *Machine* allows interfacing with different *Features* in C++ directly without any middleware. Lower-level *Features* are located lower in the stack and implement platform-specific functionality, while higher-level *Features* are located higher in the stack and can use the abstraction provided by the lower-level *Features*. This allows for easy portability of higher-level *Features* to other platforms.
-
-I have designed one simple guideline for creating new *Features*. Suppose a *Feature* exports functionality to the JavaScript environment, and the functionality could be used by other *Features*. In that case, it should also provide the same functionality to other *Features* in a way that is as close to the JavaScript API as possible. When the functionality is exported as a JavaScript module, it should wrap the module functionality in a member class instance so that other *Features* can access the functionality as `this->moduleName.function()`. This makes it easy for users familiar with the JavaScript API to use the functionality in C++.
+The stack design of Machine allows interfacing with different MFeatures in C++ directly without any middleware. Lower-level MFeatures are located lower in the stack and implement platform-specific functionality, while higher-level MFeatures are located higher in the stack and can use the abstraction provided by the lower-level MFeatures. This allows for easy portability of higher-level MFeatures to other platforms.
 
 \subsection{Exceptions}
 
-Jaculus-machine provides a set of wrappers that allow usage of C++ code in the runtime. When an exception is thrown in the C++ code, it is caught by the wrapper, converted to a JavaScript exception, and propagated to the runtime. The library allows the user to specify the type of JavaScript `Error` or any other JavaScript value that should be thrown.
+Jaculus-machine provides a set of wrappers that allow calling C++ functions from JavaScript code. When an exception is thrown in the C++ code, it is caught by the wrapper, converted to a JavaScript exception, and propagated to the runtime. The library allows the user to specify the type of JavaScript `Error` or any other JavaScript value that should be thrown.
 
-Similarly, when a JavaScript exception is thrown in the runtime, it is caught by its wrapper, converted to a C++ exception of type `jac::Exception`, and propagated to the C++ code.
+Similarly, when a JavaScript function is called from C++, and an exception is thrown in the runtime, it is caught by its wrapper, converted to a C++ exception of type `jac::Exception`, and propagated to the C++ code.
 
 
 \section{Features}
 
-Jaculus-machine adds a minimum set of features to the runtime but provides tools that make creating new *Features* as easy as possible.
+Jaculus-machine mainly consists of wrappers around QuickJS API. The wrappers provide RAII semantics and an easy-to-use API for routine use cases.
+
+The library provides a minimum set of MFeatures that are required for the runtime to function correctly, or are useful for development and debugging. Conversely, the library aims to provide functionality, which makes the creation of new MFeatures as easy as possible.
+
 
 \subsection{Value wrapping and conversion}
 
-QuickJS uses reference counting for memory management, and the user is responsible for freeing JavaScript values when they are no longer needed. Jaculus-machine provides a set of classes that wrap JavaScript values and provide RAII semantics for them. The classes also provide a simple API for converting to and from C++ types.
+QuickJS uses reference counting for memory management, and the user is responsible for decreasing the reference count of JavaScript values that are no longer needed. Jaculus-machine provides a set of classes that wrap JavaScript values and provide RAII semantics for them. The classes also provide a simple API for converting to and from C++ types.
 
 The base class for JavaScript value wrapper is `jac::ValueWrapper` and provides a general API for working with JavaScript values. More specific wrapper classes are derived from `jac::ValueWrapper` and provide additional functionality, such as `jac::ObjectWrapper` and `jac::FunctionWrapper`.
 
@@ -283,18 +284,18 @@ The created wrapper then automatically performs argument and return value type c
 
 \subsection{Class wrapping}
 
-The library provides an interface for defining JavaScript classes, which can contain opaque C++ objects. The user must first define a `ProtoBuilder` class, which tells the library how to construct the JavaScript object prototype. The class `jac::Class` can then be used to initialize the class in a given Context, construct the JavaScript object or obtain its constructor.
+The library provides an interface for defining JavaScript classes, which can contain opaque C++ objects. The user must first define a `ProtoBuilder` class, which tells the library how to construct the JavaScript object prototype and how to manage the optional opaque data. The class `jac::Class` can then be used to initialize the class in a given Context, construct the JavaScript object or obtain its constructor.
 
-\subsection{Built-in *Features*}
+\subsection{Built-in MFeatures}
 
-The following *Features* are included with the library (their class names are suffixed with "Feature"):
+The following MFeatures are included with the library (their class names are suffixed with "Feature"):
 
   - EventQueue -- an asynchronous event queue that can be used to schedule events to be executed in the event loop; the events can be scheduled from any thread
   - EventLoop -- an event loop that uses an event queue to execute events in the main thread
   - Filesystem -- an abstraction over the filesystem that provides access to files and directories
   - ModuleLoader -- an implementation of module loader for loading modules from the filesystem (using the `import` statement in JavaScript) and evaluating JavaScript files (using the `eval` function in C++)
   - BasicStream -- an implementation of basic readable and writable stream types
-  - Stdio -- a feature that adds `stdin`, `stdout`, and `stderr` streams to the *Machine* and `console` interface only to the runtime
+  - Stdio -- a feature that adds `stdin`, `stdout`, and `stderr` streams to the Machine and `console` interface only to the runtime
   - Timers -- typical JavaScript timers and a sleep function
 
 \subsection{Watchdog}
@@ -310,7 +311,7 @@ By default, the watchdog will interrupt the runtime on timeout. This behavior ca
 
 \subsection{Default event loop}
 
-Default event loop implementation is split into two separate *Features*. One implements an event queue, and the other implements the event loop. This allows for easier portability, as the event loop itself can be reused on different platforms, while the event queue can be extended to, for example, support scheduling events from interrupts.
+Default event loop implementation is split into two separate MFeatures. One implements an event queue, and the other implements the event loop. This allows for easier portability, as the event loop itself can be reused on different platforms, while the event queue can be extended to, for example, support scheduling events from interrupts.
 
 
 \section{Usage}
@@ -319,29 +320,29 @@ Default event loop implementation is split into two separate *Features*. One imp
 
 The library is configured as a CMake project. It exports a CMake target called `jac-machine` that can be linked to other projects.
 
-\subsection{Creating a *Machine*}
+\subsection{Creating a Machine}
 
- 1. The user must define the the *Machine* type using inheritance from `jac::MachineBase` and selected *Features*, as described in ((TODO)).
+ 1. The user must define the the Machine type using inheritance from `jac::MachineBase` and selected MFeatures, as described in ((TODO)).
 
- 2. The *Machine* type can be used to create an instance of the *Machine*:
+ 2. The Machine type can be used to create an instance of the Machine:
 
 ```cpp
 Machine machine;
 ```
 
- 3. The user can configure the *Machine* and its *Features* using their provided interface. The runtime is still not initialized, and the user must not interact with it.
+ 3. The user can configure the Machine and its MFeatures using their provided interface. The runtime is still not initialized, and the user must not interact with it.
 
- 4. After configuration the user must initialize the *Machine*:
+ 4. After configuration the user must initialize the Machine:
 
 ```cpp
 machine.initialize();
 ```
 
- 5. The *Machine* is now configured, initialized, and ready to use.
+ 5. The Machine is now configured, initialized, and ready to use.
 
 \subsection{Running JavaScript code}
 
-Using the `eval` method, the *Machine* can evaluate JavaScript code from a string. The `eval` method takes the code to evaluate, the filename of the code (used for error reporting), and a set of flags that control the evaluation Context. The following code evaluates a simple "Hello, world!" program:
+Using the `eval` method, the Machine can evaluate JavaScript code from a string. The `eval` method takes the code to evaluate, the filename of the code (used for error reporting), and a set of flags that control the evaluation Context. The following code evaluates a simple "Hello, world!" program:
 
 ```cpp
 // jac::MachineBase::eval(std::string code, std::string filename, jac::EvalFlags flags)
@@ -535,12 +536,12 @@ Value obj = constructor.to<Function>().callConstructor();
 
 \subsection{Creating new Features}
 
-To create a new Feature, the user must define a *Feature* class. The first template parameter of the call must be `Next` from which the class inherits. To add functionality to the machine, the class may:
+To create a new Feature, the user must define a MFeature class. The first template parameter of the call must be `Next` from which the class inherits. To add functionality to the machine, the class may:
 
-  - present a public C++ interface to *Features* higher in the inheritance chain or to user of the *Machine*
+  - present a public C++ interface to MFeatures higher in the inheritance chain or to user of the Machine
   - use the `initialize` method to add functionality to the JavaScript runtime
 
-In the *Feature* constructor, the user must not interact with the JavaScript runtime in any way, as it is not initialized yet. Initialization of the *Feature* involving the JavaScript runtime should be done in the `initialize` method.
+In the MFeature constructor, the user must not interact with the JavaScript runtime in any way, as it is not initialized yet. Initialization of the MFeature involving the JavaScript runtime should be done in the `initialize` method.
 
 The following code shows an example of a Feature that adds a `foo` property to the global object:
 
@@ -665,16 +666,16 @@ It uses the Jaculus-machine library for the JavaScript runtime and the Jaculus-l
 
 \subsection{Device class}
 
-The `jac::Device` class is the entry point for defining a Jaculus device. It is a template parametrized by the *Machine* type used for the JavaScript runtime. The *Machine* type must implement the `evalFile` method, which is used to run the code uploaded to the device.
+The `jac::Device` class is the entry point for defining a Jaculus device. It is a template parametrized by the Machine type used for the JavaScript runtime. The Machine type must implement the `evalFile` method, which is used to run the code uploaded to the device.
 
-The `jac::Device` class exposes a `jac::Router` object, which is used to connect the device to the communication channel/s. `jac::Device` also exposes an interface for controlling the internal *Machine* instance from C++ code.
+The `jac::Device` class exposes a `jac::Router` object, which is used to connect the device to the communication channel/s. `jac::Device` also exposes an interface for controlling the internal Machine instance from C++ code.
 
 Two services are also part of the `jac::Device` class and expose functionality over the communication channel/s:
 
   - Uploader - service for uploading code/data to the device
   - Controller - service for controlling and monitoring the device
 
-Each service uses a single channel provided by the `jac::Router` object. Other channels are also reserved for the standard input and output of the *Machine* instance and for a global logger instance.
+Each service uses a single channel provided by the `jac::Router` object. Other channels are also reserved for the standard input and output of the Machine instance and for a global logger instance.
 
 The `jac::Device` implements a locking mechanism to prevent multiple clients from accessing the device simultaneously. The lock is paired with a timeout, which is reset while the client communicates with the devices. If the timeout expires, the lock is released, and other clients can access the device. The lock is exposed to the client via the Controller service.
 
@@ -688,8 +689,8 @@ The Controller service is implemented in the `jac::Controller` class. It uses a 
 The service provides the following functionality:
 
   - accessing the device lock
-  - controlling the internal *Machine* instance
-  - using the *Machine* instance's standard input and output
+  - controlling the internal Machine instance
+  - using the Machine instance's standard input and output
   - monitoring the device status
 
 \subsection{Filesystem access}
@@ -862,7 +863,7 @@ To fix this, modifying QuickJS internals would be required, which is outside the
 
 \section{ESP32 filesystem}
 
-As the filesystem *Feature* is implemented using C++ `std::filesystem`, which is not yet fully supported by the ESP-IDF, some of its functionality might not work, and some may even block the runtime.
+As the filesystem MFeature is implemented using C++ `std::filesystem`, which is not yet fully supported by the ESP-IDF, some of its functionality might not work, and some may even block the runtime.
 
 The broken functionality involves listing directories -- `readdir` and `rmdir`. Fortunately, working with files works without a problem, which is an essential functionality.
 
