@@ -1,0 +1,103 @@
+\shorthandoff{'}
+\begin{markdown*}{%
+  hybrid,
+  definitionLists,
+  footnotes,
+  inlineFootnotes,
+  hashEnumerators,
+  fencedCode,
+  citations,
+  citationNbsps,
+  pipeTables,
+  tableCaptions,
+}
+
+\chapter{Jaculus-tools}
+
+Jaculus-tools is primarily a command-line application for interacting with Jaculus devices. The application allows users to control and monitor the JavaScript runtime and access the internal filesystem of the device.
+
+It could also be used as a library for building custom applications, but it is not documented. The user might want to look at the source code of the command-line application part of the package for inspiration.
+
+The package is implemented in TypeScript and requires Node.js 18 to run. It can be installed using npm:
+
+```
+$ npm install -g jaculus-tools
+```
+
+
+\section{Features}
+
+The application provides the following commands:
+
+  - `help` -- prints help for the specified command
+  - `list-ports` -- lists available serial ports
+  - `serial-socket` -- tunnels a serial port over a TCP socket
+  - `install` -- installs the Jaculus device firmware
+  - `build` -- builds the TypeScript code
+  - `ls`
+  - `read`
+  - `write`
+  - `rm`
+  - `mkdir`
+  - `rmdir`
+  - `upload`
+  - `flash`
+  - `pull`
+  - `start` -- runs specified file in the device
+  - `stop` -- stops the currently running file
+  - `status` -- prints the status of the device
+  - `monitor` -- connects to the device's standard input and output
+
+The commands are run by specifying them after the `jac` command.
+
+```
+$ jac <command> [options] [arguments]
+```
+
+\section{Implementation}
+
+\subsection{Command-line argument parser}
+
+The application uses a custom parser for command-line arguments, which allows for chaining compatible commands.
+
+The commands can also access and modify a global state object passed to each command. This allows for commands to share data.
+
+For example, the following command:
+
+```
+$ jac --port /dev/ttyUSB0 build flash monitor
+```
+
+Will run the three specified commands -- build, flash, monitor -- in sequence. The `build` command compiles the code and saves the compiled code to `build` directory. The `flash` command connects to the device, saves the device to the parser state, and uploads the code. The `monitor` command uses the saved device to access its standard input and output without reconnecting.
+
+Command-line options are divided into two types -- global and command-specific. Options can be specified in any place of the command, as the parsing is done in multiple passes for each specified command. The global options are parsed first, then options of the first command are extracted, then of the second, and so on. Each command then receives only its and the global options. This forces the commands to use different names for their options, as otherwise, preceding commands might extract them. For example, the following two commands would be parsed the same way:
+
+```
+$ jac --port /dev/ttyUSB0 build flash monitor
+$ jac build flash monitor --port /dev/ttyUSB0
+```
+
+The commands can also specify standard arguments, which are parsed after the options:
+
+```
+$ jac --port /dev/ttyUSB0 read ./code/index.js
+```
+
+\subsection{Connection to the device}
+
+The application implements a simplified version of the interface described in ((TODO - Jaculus-link)) -- the `Router` class is omitted, as connection to multiple devices is pointless. Aside from that and language choice (TypeScript), the implementation is almost identical.
+
+\subsection{Device access}
+
+The application provides access to the device via the `Device` class. The class exposes the following functionality to the user:
+
+  - device lock
+  - Controller and Uploader services
+  - standard input and output of the running program
+  - output of the device logger
+
+\subsection{TypeScript code compilation}
+
+
+\shorthandon{'}
+\end{markdown*}

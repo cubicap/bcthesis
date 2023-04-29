@@ -1,0 +1,38 @@
+\shorthandoff{'}
+\begin{markdown*}{%
+  hybrid,
+  definitionLists,
+  footnotes,
+  inlineFootnotes,
+  hashEnumerators,
+  fencedCode,
+  citations,
+  citationNbsps,
+  pipeTables,
+  tableCaptions,
+}
+
+\chapter{Jaculus-esp32}
+
+Jaculus-esp32 is a Jaculus device firmware for the ESP32 family of microcontrollers. It is implemented using the ESP-IDF framework and the Jaculus-device-core library.
+
+\section{Features}
+
+Aside from the features provided by Jaculus-device-core, Jaculus-esp32 only provides control over the most basic peripherals, which are:
+
+  - GPIO -- general-purpose input/output pins
+  - ADC -- analog-to-digital converter
+  - LEDC -- generator of PWM signals
+  - Neopixel -- WS2812B smart LED strip
+
+Jaculus-esp32 also implements a specialized event queue based directly on FreeRTOS queues, supporting scheduling events from an interrupt context. This is used in the GPIO feature for generating events on the input signal change.
+
+
+\section{Usage}
+
+  - flash manually using ESP-IDF
+  - flash using Jaculus-tools
+
+
+\shorthandon{'}
+\end{markdown*}
