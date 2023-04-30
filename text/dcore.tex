@@ -12,42 +12,45 @@
   tableCaptions,
 }
 
-\chapter{Jaculus-device-core}
+\chapter{Jaculus-dcore}
 
-The Jaculus-device-core library provides a mechanism for defining a Jaculus device and controlling it.
+To make porting Jaculus to different platforms easier, the core functionality of Jaculus device (e.g. communication, control protocol, JavaScript runtime) is implemented in the Jaculus-dcore library in a platform-independent way. The library requires C++20 and POSIX support to be available on the target platform.
 
 It uses the Jaculus-machine library for the JavaScript runtime and the Jaculus-link library for communication.
-
-% \section{Features}
-
-%   - Jaculus-machine runtime
-%   - communication via Jaculus-link
-%   - control protocol for controlling and monitoring Jaculus-machine runtime
-%   - uploader protocol for uploading code/data to Jaculus device
 
 \section{Architecture}
 
 \subsection{Device class}
 
-The `jac::Device` class is the entry point for defining a Jaculus device. It is a template parametrized by the Machine type used for the JavaScript runtime. The Machine type must implement the `evalFile` method, which is used to run the code uploaded to the device.
+The `Device` class is the entry point for defining a Jaculus device. It is a template parametrized by the Machine type used for the runtime. The Machine type must implement the `evalFile` method, which is used to run the code uploaded to the device.
 
-The `jac::Device` class exposes a `jac::Router` object, which is used to connect the device to the communication channel/s. `jac::Device` also exposes an interface for controlling the internal Machine instance from C++ code.
+The `Device` class exposes a `Router` object from Jaculus-link, which is used to connect the device to the communication interface. `Device` also exposes an interface for controlling the internal Machine instance from C++ code.
 
-Two services are also part of the `jac::Device` class and expose functionality over the communication channel/s:
+Three services are also part of the `Device` class and expose functionality over the communication channel/s:
 
   - Uploader - service for uploading code/data to the device
   - Controller - service for controlling and monitoring the device
+  - Logger - service for logging messages from the device
 
-Each service uses a single channel provided by the `jac::Router` object. Other channels are also reserved for the standard input and output of the Machine instance and for a global logger instance.
+The services use separate channels provided by the `Router` object. Other channels are also reserved for the standard input and output of the Machine instance.
 
-The `jac::Device` implements a locking mechanism to prevent multiple clients from accessing the device simultaneously. The lock is paired with a timeout, which is reset while the client communicates with the devices. If the timeout expires, the lock is released, and other clients can access the device. The lock is exposed to the client via the Controller service.
+The `Device` implements a locking mechanism to prevent multiple clients from accessing the device simultaneously. The lock is paired with a timeout, which is reset while the client communicates with the devices. If the timeout expires, the lock is released, and other clients can access the device. The lock is exposed to the client via the Controller service.
 
 
 \section{Implementation}
 
 \subsection{Controller service}
 
-The Controller service is implemented in the `jac::Controller` class. It uses a *PacketCommunicator* interface to communicate with the client. The first byte of each packet is used to specify the command to be executed. The rest of the packet is used to transmit command-specific data.
+The Controller service is implemented in the `Controller` class. It uses a *PacketCommunicator* interface to communicate with the client.
+
+The first byte of each packet is used to specify the command to be executed. The rest of the packet is used to transmit command-specific data. The packet structure of the protocol is shown in a diagram in Figure \ref{fig:controller-protocol}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{img/controller-protocol}
+    \caption{Controller protocol packet structure}
+    \label{fig:controller-protocol}
+\end{figure}
 
 The service provides the following functionality:
 
@@ -58,11 +61,18 @@ The service provides the following functionality:
 
 \subsection{Filesystem access}
 
-The Uploader service provides access to the filesystem of the device. Unfortunately, because `std::filesystem` is not yet fully implemented in ESP-IDF, the implementation has to, in some cases, rely on the POSIX filesystem API to be portable to the ESP platform.
+The Uploader service provides access to the filesystem of the device. Unfortunately, because `std::filesystem` is not yet fully implemented in ESP-IDF, the implementation has to, in some cases, rely on the POSIX filesystem API to run on the ESP platform.
 
 \subsection{Uploader service}
 
-The Uploader service is implemented in the `jac::Uploader` class. Similarly to the Controller service, it uses a *PacketCommunicator* interface to communicate with the client. The first byte of each packet is used to specify the command to be executed. The rest of the packet is used to transmit command-specific data.
+The Uploader service is implemented in the `Uploader` class. Similarly to the Controller service, it uses a *PacketCommunicator* interface to communicate with the client. The first byte of each packet is used to specify the command to be executed. The rest of the packet is used to transmit command-specific data. The packet structure of the protocol is shown in a diagram in Figure \ref{fig:uploader-protocol}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{img/uploader-protocol}
+    \caption{Uploader protocol packet structure}
+    \label{fig:uploader-protocol}
+\end{figure}
 
 The service provides the following functionality:
 

@@ -20,6 +20,7 @@ Another problem of compiled languages in embedded environments is a long develop
 
 As embedded devices often interact with the physical world or communicate with other devices, they often have to wait for external events rather than actively performing some computation. Therefore, most embedded applications have reactive and asynchronous elements, which are difficult to express in low-level languages. This induces a lot of boilerplate code, which obfuscates the main application logic and makes it harder to develop and maintain. Even though high-level languages such as C++ and Rust somewhat alleviate this problem, C is often the only language with direct support from the manufacturers, adding more work for the developer.
 
+
 \chapter{Proposed solution}
 
 The proposed solution is to use a high-level, interpreted language instead. The language has to:
@@ -39,7 +40,7 @@ JavaScript is a popular language commonly used in web browsers. The language spe
 
 For the reasons above, JavaScript was chosen as the language of choice.
 
-Because JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as compiling or running TypeScript on a microcontroller is not feasible, it must first be compiled to JavaScript.
+Because JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as compiling or running TypeScript on a microcontroller is not feasible, it must first be transpiled to JavaScript.
 
 
 \chapter{Overview}
@@ -49,7 +50,6 @@ The main task is to create a JavaScript runtime environment for microcontrollers
 The runtime should primarily focus on the ESP32 and ESP32-S3 microcontrollers, as they are prevalent in the maker community and provide high performance at a low price.
 
 A firmware for a microcontroller, which gives complete control over the device to the JavaScript runtime and provides an interface for programming and controlling the device, should be created. A device running this firmware will be called a *JavaScript device*.
-
 
 \section{Runtime environment}
 
@@ -73,9 +73,9 @@ The final solution uses QuickJS. Compared to the other options, it stands on a n
 
 There should be a way to communicate with the device --- to upload code, control the runtime and monitor the device's state.
 
-Most microcontrollers feature a serial interface, such as a USB to UART bridge or a native USB interface. The interface, however, only provides a single duplex byte stream, meaning a protocol must be implemented on top of it to support multiple services over a single connection.
+Most microcontrollers feature a serial interface, such as a USB to UART bridge or a native USB interface. A serial interface, however, only provides a single duplex byte stream, meaning a protocol must be implemented on top of it to support multiple services over a single connection.
 
-The used protocol allows multiplexing discrete communication channels over a single byte stream.
+Using a single stream connection also adds flexibility in the choice of the transport medium. Aside from the serial interface, the protocol can be used over a network socket, web socket, or any other byte stream connection.
 
 \section{Tooling}
 

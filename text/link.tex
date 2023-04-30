@@ -14,41 +14,41 @@
 
 \chapter{Jaculus-link}
 
-Jaculus-link is a standalone communication library that provides a mechanism for multiplexing multiple channels on a single stream connection and routing multiple channelized connections to a single consumer.
+As described in ((TODO)), the communication between the device and the host is done through a single stream connection.
 
-% \section{Features}
+Because the services running on the device work mostly independently, communicating with each service independently is desirable; this is achieved by multiplexing multiple channels on a single stream connection.
 
-%   - multiplexing multiple channels on a single stream connection
-%   - routing multiple channelized connections to a single consumer
+Sometimes, the device may have multiple communication interfaces, which can be used for communication with the host. In such cases, it is desirable to be able to route the communication to the appropriate interface.
+
+This functionality is implemented in the Jaculus-link library, which provides a way to multiplex multiple channels on a single stream connection and route the communication to the appropriate interface.
 
 \section{Architecture}
 
-\subsection{Mux}
+The model of Jaculus-link is split into three layers:
 
-The `jac::Mux` class allows the transmission of 256 virtual channels over a single stream connection. The class is a template parametrized by the used protocol. The connection is defined as an object implementing the `Duplex` interface.
+1. Data link layer
+2. Routing layer
+3. Communicator layer
 
-The protocol is defined by two types: `Packetizer` and `Serializer`. The `Packetizer` is responsible for decoding the incoming stream into packets, while the `Serializer` is responsible for encoding packets into the stream. The packets then contain the channel ID and the data.
+\subsection{Data link}
 
-The `Mux` class implements a `ChannelTransmitter` interface, which allows sending data to a specified channel. It can be bound to an object implementing the `ChannelReceiver` interface, which is then used to process the received data.
+The data link is responsible for transmitting data along with channel identifiers. The data link provided in this library is implemented in the `Mux` class, which multiplexes 256 channels on a single stream connection.
 
-\subsection{Router}
+It is possible to use other data link implementations, provided that they implement the `ChannelTransmitter` interface for transmission and provide a way to connect them to a `ChannelReceiver` for processing received data.
 
-The `jac::Router` class allows routing packets from different connections to consumers depending on the channel ID and vice versa. The class allows binding `ChannelTransmitter` objects to different IDs and presents a `ChannelReceiver` interface on the same ID used to process the received packets.
+\subsection{Routing layer}
 
-On the consumer side, objects implementing `jac::Consumer` interface can be bound to different channel IDs. The `Router` will then route the received packet data, paired with the connection ID, to the appropriate consumer.
+The routing layer is responsible for routing received data to the consumer of the channel. The routing layer is implemented in the `Router` class.
 
-\subsection{Communicator}
+A `Router` instance can be connected to multiple data links and will route data from all of them to the appropriate consumer with the information about the link it was received from. It also allows sending data to a specific link and channel.
 
-Different *Communicator* interfaces are used as an abstraction used by the application. The supplied *Communicator* interfaces are:
+\subsection{Communicator layer}
 
-  - `jac::OutputStreamCommunicator`
-  - `jac::BufferedInputStreamCommunicator`
-  - `jac::OutputPacketCommunicator`
-  - `jac::InputPacketCommunicator`
+The communicator layer is used as an abstraction layer for communicating through channels. Typically, the communicator is associated with a single channel and provides either an interface for sending or receiving data.
 
-*PacketCommunicator* types allow the usage of the underlying packetization. They do **not** guarantee any packet capacity, as they map directly to the underlying communication interfaces (e.g., `Mux`), which may use different packet sizes. They are, however, useful for data framing without any additional overhead.
+Communicators used for receiving data from a `Router` must implement the `Consumer` interface, which allows them to be subscribed to a specific channel on a `Router` instance. They must process the received data without blocking, preferably only by storing the data in a buffer and processing it later.
 
-*StreamCommunicator* types, on the contrary, hide the underlying packetization and provide a stream-like interface.
+Communicators that send data access the `Router` instance directly and send data to a specific channel on a specific link (or links).
 
 \subsection{Full Jaculus-link pipeline}
 
@@ -64,11 +64,15 @@ The default configuration of the full pipeline provided by the library is shown 
 
 \section{Implementation}
 
-The library is implemented strictly using only C++ 20 standard library for easy portability. For this reason, no `Duplex` implementation is provided, and the user must provide one themselves.
+The library is implemented strictly using only C++ 20 standard library for easy portability. For this reason, it does not provide an implementation for communication interfaces, and the user must provide one themselves.
+
+All functionality is contained in the `jac` namespace.
 
 \subsection{Multiplexer protocol}
 
-The library provides one protocol for the multiplexer in the classes `jac::CobsPacketizer` and `jac::CobsSerializer`. The protocol uses the COBS ((TODO)) algorithm for data framing, which is paired with a CRC16 checksum.  Jaroslav Malec ((TODO)) originally proposed the use of this protocol for the predecessor version of the Jaculus project ((TODO: explain?)). Figure \ref{fig:cobs-diagram} shows a diagram describing the packet structure.
+The library provides one protocol for the multiplexer in the class `CobsEncoder`. The protocol uses the COBS ((TODO)) algorithm for data framing, which is paired with a CRC16 checksum. Jaroslav Malec ((TODO)) originally proposed the use of this protocol for the predecessor version of the Jaculus project ((TODO: explain?)).
+
+Figure \ref{fig:cobs-diagram} shows a data frame structure diagram. After the start of the data frame, the first byte of the packet data is the channel identifier, followed by the transmitted data. The last two bytes of the packet are the CRC16 checksum of the packet data.
 
 \begin{figure}[ht]
     \centering
@@ -77,17 +81,71 @@ The library provides one protocol for the multiplexer in the classes `jac::CobsP
     \label{fig:cobs-diagram}
 \end{figure}
 
-The delimiter byte at the start of the packet allows for resetting the packetization state in case a packet is lost, malformed, or other corrupted data is received.
+The delimiter byte at the start of the packet allows for resetting the packetization state in case a previous packet is lost, malformed, or other corrupted data is received.
 
 
 \section{Usage}
 
-((TODO: is this even necessary?))
+\subsection{Adding the library to a project}
 
-  - defining a Stream
-  - configuring Mux
-  - configuring Router
-  - creating Consumer
+Jaculus-link is a header-only library, so it is sufficient to add the `include` directory to the include path of the project. The library is also configured as a CMake project and exports a target `jac-link` that can be linked to other projects.
+
+\subsection{Multiplexer}
+
+The class `Mux` is a data link implemented as a multiplexer and is templated on the type of the underlying multiplexer protocol. The only protocol provided with the library is in the `CobsEncoder` class. To implement another protocol, the user can create a class with the same interface as `CobsEncoder`.
+
+The `Mux` constructor takes a `Duplex` instance, which serves as an abstraction around the stream connection.
+
+\subsection{Router}
+
+The `Router` class implements the routing layer.
+
+A `Router` instance can be connected to multiple data links as shown in the following example:
+
+```cpp
+// Create a router
+Router router;
+
+// Create a stream connection
+auto stream = std::make_unique<MyStream>();
+
+// Configure a data link
+Mux<CobsEncoder> mux(std::move(stream));
+
+// Connect the data link to the router
+auto handle = router.subscribeTx(1, mux);
+mux.bindRx(std::make_unique<decltype(handle)>(std::move(handle)));
+```
+
+The `handle` object is used to receive data from the data link and must be bound to the same data link instance as the one used to subscribe to the router, as it adds the information about the data link to the received data.
+
+\subsection{Communicators}
+
+The communicators are used as an abstraction layer for communicating through channels. Communicators provide an interface for sending or receiving data through a channel.
+
+The provided communicator types are:
+
+- `OutputStreamCommunicator` - sends data as a stream of bytes
+- `InputStreamCommunicator` - receives data as a stream of bytes
+- `OutputPacketCommunicator` - sends data while exposing the underlying data framing
+- `InputPacketCommunicator` - receives data while exposing the underlying data framing
+
+These communicator types are only interfaces, and their implementations for `Router` are provided in classes with the same names prefixed with `Router`.
+
+The following example shows how to create a pair of stream communicators:
+
+```cpp
+Router router;
+
+// Create an input stream communicator
+RouterInputStreamCommunicator input({});
+
+// Subscribe the communicator to the router
+router.subscribeChannel(1, input);
+
+// Create an output stream communicator and connect it to the router
+RouterOutputStreamCommunicator output(router, 1, {});
+```
 
 
 \shorthandon{'}
