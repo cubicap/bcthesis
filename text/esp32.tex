@@ -14,25 +14,27 @@
 
 \chapter{Jaculus-esp32}
 
-Jaculus-esp32 is a Jaculus device firmware for the ESP32 family of microcontrollers. It is implemented using the ESP-IDF framework and the Jaculus-dcore library.
+By adding hardware bindings to Jaculus-dcore, it is possible to create a firmware for a specific platform. The version created as a part of this thesis is Jaculus-esp32.
+
+Jaculus-esp32 is a Jaculus device firmware for the ESP32 and ESP32-S3 microcontrollers. It uses the ESP-IDF framework and supports connection to a computer via a serial port.
 
 \section{Features}
 
-Aside from the features provided by Jaculus-dcore, Jaculus-esp32 only provides control over the most basic peripherals, which are:
+Aside from the features provided by Jaculus-dcore, Jaculus-esp32 only implements control over the most basic peripherals, which are:
 
   - GPIO -- general-purpose input/output pins
   - ADC -- analog-to-digital converter
   - LEDC -- generator of PWM signals
   - Neopixel -- WS2812B smart LED strip
 
-Jaculus-esp32 also implements a specialized event queue based directly on FreeRTOS queues, supporting scheduling events from an interrupt context. This is used in the GPIO feature for generating events on the input signal change.
+Jaculus-esp32 also implements a specialized event queue based on a FreeRTOS queue and supports scheduling events from an interrupt context. This is used in the GPIO feature, which generates events when the state of a pin changes through an interrupt.
 
 
 \section{Usage}
 
-  - flash manually using ESP-IDF
-  - flash using Jaculus-tools
+The firmware can be flashed to the device manually using ESP-IDF tools or the Jaculus CLI tool described in the next chapter.
 
+The firmware uses the Jaculus-machine ((TODO: link)) runtime at its core, which means that adding new features to the runtime is done the same way as described in ((TODO: link)).
 
 \shorthandon{'}
 \end{markdown*}

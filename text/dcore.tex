@@ -87,8 +87,21 @@ Commands for reading a file and listing a directory might also split the data in
 
 \section{Usage}
 
-  - defining a Jaculus device
-  - controlling a Jaculus device
+\subsection{Creating a new device}
+
+To create a new device, an instance of the `Device` class must be created. The class is templated by the Machine type used for the JavaScript runtime. Creation of Machine type is described in ((TODO)).
+
+The `Device` must be connected to a communication interface. The object exposes a `Router` object from Jaculus-link, which should be used to connect the device to a data link. Definition and binding of a data link is described in ((TODO)).
+
+After the device is initialized, the `Device::start` method must be called to start the provided services.
+
+A minimal example of creating a device is shown in ((TODO)).
+
+\subsection{Controlling the device}
+
+The device can be controlled using the Controller and Uploader services. The services can be accessed through the connected data links.
+
+Jaculus-tools can be used to control the device from the command line. It is described in ((TODO)).
 
 
 \shorthandon{'}

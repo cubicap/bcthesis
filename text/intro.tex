@@ -28,17 +28,17 @@ The proposed solution is to use a high-level, interpreted language instead. The 
   - have low enough hardware requirements to run on a microcontroller
   - be easy to learn and use
   - be able to express reactive and asynchronous elements
-  - be embeddable in C/C++ applications
+  - be embeddable into C/C++ applications
 
 Three popular options are Python, Lua, and JavaScript.
 
 Python is a general-purpose language with an extensive standard library, which makes it suitable for many applications. However, it is not suitable for embedded devices due to its high memory requirements caused by the large standard library.
 
-Lua is a lightweight scripting language with a small standard library. It is suitable for embedded devices but not as popular as Python and JavaScript, making it harder to find relevant resources and justify learning a new language. There are interpreters of Lua, which are embeddable in C/C++ applications.
+Lua is a lightweight scripting language with a small standard library. It is suitable for embedded devices but not as popular as Python and JavaScript, making it harder to find relevant resources and justify learning a new language. There are interpreters of Lua, which are embeddable into C/C++ applications.
 
 JavaScript is a popular language commonly used in web browsers. The language specification defines a small standard library, which is extended by the runtime environment, meaning a small memory footprint. It also maps very well to the event-centered nature of many embedded systems, as JavaScript is inherently event-driven. Multiple embeddable JavaScript engines exist, such as DukTape, MuJS, and QuickJS.
 
-For the reasons above, JavaScript was chosen as the language of choice.
+For the above reasons, JavaScript was chosen to be used in the final solution.
 
 Because JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as compiling or running TypeScript on a microcontroller is not feasible, it must first be transpiled to JavaScript.
 

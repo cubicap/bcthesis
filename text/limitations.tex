@@ -45,18 +45,18 @@ Fortunately, this is not a problem for well-written code, which handles all poss
 To fix this, modifying QuickJS internals would be required, which is outside the scope of this work, but it is an essential consideration for future work.
 
 
-\section{ESP32 filesystem}
+\section{ESP32 filesystem API}
 
 As the filesystem MFeature is implemented using C++ `std::filesystem`, which is not yet fully supported by the ESP-IDF, some of its functionality might not work, and some may even block the runtime.
 
-The broken functionality involves listing directories -- `readdir` and `rmdir`. Fortunately, working with files works without a problem, which is an essential functionality.
+The broken functionality involves listing directories -- `readdir` and `rmdir`. Fortunately, working with files works without a problem, which is an essential functionality for loading JavaScript files.
 
 
 \section{Compatibility with other platforms}
 
-Through implementing all of the created libraries, I have focused on only using the standard C++ library. This worked well for development, as all of the functionality could be tested locally on a desktop PC, and later everything could be easily integrated with the ESP-IDF. Unfortunately, after briefly exploring development options of platforms other than ESP32 (e.g., STM32, RP2040), I have discovered that the C++ 20 standard is not well supported.
+Through implementing all of the created components, I have focused on only using the standard C++20 library. This worked well for development, as all of the functionality could be tested locally on a desktop PC, and later everything could be easily integrated with the ESP-IDF. Unfortunately, after briefly exploring development options of platforms other than ESP32 (STM32, RP2040), I have discovered that the C++20 standard is often not fully supported.
 
-This has dealt a significant blow to the portability of the created libraries, which will have to be partially rewritten to support other platforms. Primarily, an abstraction layer around the filesystem and asynchronous elements (e.g., threads, synchronization primitives) will have to be implemented.
+This has dealt a significant blow to the portability of these components, which will have to be partially rewritten to support other platforms. Primarily, an abstraction layer around the filesystem API and asynchronous elements (threads, synchronization primitives) will have to be implemented.
 
 
 \shorthandon{'}
