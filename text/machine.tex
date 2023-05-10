@@ -20,8 +20,8 @@ A large portion of Jaculus-machine is a set of C++ classes that wrap the QuickJS
 
 Jaculus-machine uses two core concepts, which will be referred to as *Machine* and *MFeature* throughout the rest of this thesis.
 
-  - Machine -- an instance of the runtime complete with all the selected MFeatures
-  - MFeature -- a component that can be used as a part of a Machine and which provides functionality to the runtime or to other MFeatures
+  - Machine --- an instance of the runtime complete with all the selected MFeatures
+  - MFeature --- a component that can be used as a part of a Machine and which provides functionality to the runtime or to other MFeatures
 
 \section{Architecture}
 
@@ -29,9 +29,9 @@ The main entry point of the library is a Machine object. After a Machine is crea
 
 \subsection{Machine and MFeatures}
 
-Machine is defined using templated stack inheritance from `MachineBase` and selected MFeature classes. The `MachineBase` class provides the core functionality of the runtime, and the MFeature classes implement additional functionality, such as an event loop, filesystem access, etc.
+A Machine is defined using templated stack inheritance from `MachineBase` and selected MFeature classes. The `MachineBase` class provides the core functionality of the runtime, and the MFeature classes implement additional functionality, such as an event loop, filesystem access, etc.
 
-The stack design of Machine allows interfacing with different MFeatures in C++ directly without any middleware. Lower-level MFeatures are located lower in the stack and implement platform-specific functionality, while higher-level MFeatures are located higher in the stack and can use the abstraction provided by the lower-level MFeatures. This allows for easy portability of higher-level MFeatures to other platforms.
+The stack design of the Machine allows interfacing with different MFeatures in C++ directly without any middleware. Lower-level MFeatures are located lower in the stack and implement platform-specific functionality, while higher-level MFeatures are located higher in the stack and can use the abstraction provided by the lower-level MFeatures. This allows for easy portability of higher-level MFeatures to other platforms.
 
 \subsection{Exceptions}
 
@@ -111,15 +111,27 @@ Default event loop implementation is split into two separate MFeatures. One impl
 
 \section{Usage}
 
+The central part of the library is the `Machine` type, which represents a JavaScript runtime with a set of MFeatures. An example definition of a Machine is shown below:
+
+```cpp
+using Machine = ComposeMachine<
+    ModuleLoaderFeature,
+    FilesystemFeature,
+    StdioFeature,
+    BasicStreamFeature,
+    MachineBase
+>;
+```
+
+The `ComposeMachine` class is a helper class that builds the Machine inheritance chain. The MFeatures at the beginning of the argument list will be at the top of the inheritance chain, and the MFeatures at the end will be at the bottom. The `MachineBase` class is a base class for all Machines and must be at the end of the list.
+
 \subsection{Adding the library to a project}
 
 The library is configured as a CMake project. It exports a CMake target called `jac-machine` that can be linked to other projects.
 
 \subsection{JavaScript values}
 
-As described in ((TODO)), the library provides a mechanism for wrapping JavaScript values.
-
-New JavaScript values can be created using static methods of the `ValueWrapper` and its subclasses. The following code shows some examples:
+The `ValueWrapper` class represents JavaScript values, which can be obtained either as a result of the execution of JavaScript code or by wrapping a C++ value. New JavaScript values can be created using static methods of the `ValueWrapper` and its subclasses. The following code shows some examples:
 
 ```cpp
 ContextRef ctx = ...;
@@ -201,8 +213,6 @@ The library provides a mechanism for creating JavaScript classes. These classes 
   1. To create a class, the user must first define a `ProtoBuilder` struct. The `ProtoBuilder` describes the class's behavior and properties through its **static** interface. Its features are specified by inheriting from structs from the `ProtoBuilder` namespace and overriding their **static** interfaces. These structs contain a default implementation of their interface and some convenience functions for describing the class. The following code shows some examples:
 
 ```cpp
-using namespace jac;
-
 struct MyBuilder : public ProtoBuilder::Properties {
     static void addProperties(ContextRef ctx, Object proto) {
         proto.defineProperty("foo", Value::from(ctx, 42));

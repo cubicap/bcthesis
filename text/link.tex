@@ -34,7 +34,7 @@ The model of Jaculus-link is split into three layers:
 
 The data link is responsible for transmitting data along with channel identifiers. The data link provided in this library is implemented in the `Mux` class, which multiplexes 256 channels on a single stream connection.
 
-It is possible to use other data link implementations, provided that they implement the `ChannelTransmitter` interface for transmission and provide a way to connect them to a `ChannelReceiver` for processing received data.
+It is possible to use other data link implementations as long as they implement the `ChannelTransmitter` interface for transmission and provide a way to connect them to a `ChannelReceiver` for processing received data.
 
 \subsection{Routing layer}
 
@@ -48,13 +48,13 @@ The communicator layer is used as an abstraction layer for communicating through
 
 Communicators used for receiving data from a `Router` must implement the `Consumer` interface, which allows them to be subscribed to a specific channel on a `Router` instance. They must process the received data without blocking, preferably only by storing the data in a buffer and processing it later.
 
-Communicators that send data access the `Router` instance directly and send data to a specific channel on a specific link (or links).
+Communicators that send data do not have a unified binding interface. Instead, they access the `Router` instance directly and send data to a specific channel on a specific link (or links).
 
 \subsection{Full Jaculus-link pipeline}
 
 The default configuration of the full pipeline provided by the library is shown in the diagram in Figure \ref{fig:link-pipeline}.
 
-\begin{figure}[ht]
+\begin{figure}[!ht]
     \centering
     \includegraphics[width=\textwidth]{img/link-pipeline}
     \caption{Default configuration of full Jaculus-link pipeline}
@@ -66,22 +66,20 @@ The default configuration of the full pipeline provided by the library is shown 
 
 The library is implemented strictly using only C++ 20 standard library for easy portability. For this reason, it does not provide an implementation for communication interfaces, and the user must provide one themselves.
 
-All functionality is contained in the `jac` namespace.
-
 \subsection{Multiplexer protocol}
 
 The library provides one protocol for the multiplexer in the class `CobsEncoder`. The protocol uses the COBS ((TODO)) algorithm for data framing, which is paired with a CRC16 checksum. Jaroslav Malec ((TODO)) originally proposed the use of this protocol for the predecessor version of the Jaculus project ((TODO: explain?)).
 
 Figure \ref{fig:cobs-diagram} shows a data frame structure diagram. After the start of the data frame, the first byte of the packet data is the channel identifier, followed by the transmitted data. The last two bytes of the packet are the CRC16 checksum of the packet data.
 
-\begin{figure}[ht]
+The delimiter byte at the start of the packet allows for resetting the packetization state in case a previous packet is lost, malformed, or other corrupted data is received.
+
+\begin{figure}[!ht]
     \centering
     \includegraphics[width=\textwidth]{img/cobs-diagram}
     \caption{COBS protocol packet structure}
     \label{fig:cobs-diagram}
 \end{figure}
-
-The delimiter byte at the start of the packet allows for resetting the packetization state in case a previous packet is lost, malformed, or other corrupted data is received.
 
 
 \section{Usage}
@@ -125,10 +123,10 @@ The communicators are used as an abstraction layer for communicating through cha
 
 The provided communicator types are:
 
-- `OutputStreamCommunicator` - sends data as a stream of bytes
-- `InputStreamCommunicator` - receives data as a stream of bytes
-- `OutputPacketCommunicator` - sends data while exposing the underlying data framing
-- `InputPacketCommunicator` - receives data while exposing the underlying data framing
+- `OutputStreamCommunicator` --- sends data as a stream of bytes
+- `InputStreamCommunicator` --- receives data as a stream of bytes
+- `OutputPacketCommunicator` --- sends data while exposing the underlying data framing
+- `InputPacketCommunicator` --- receives data while exposing the underlying data framing
 
 These communicator types are only interfaces, and their implementations for `Router` are provided in classes with the same names prefixed with `Router`.
 

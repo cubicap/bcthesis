@@ -1,0 +1,50 @@
+\shorthandoff{'}
+\begin{markdown*}{%
+  hybrid,
+  definitionLists,
+  footnotes,
+  inlineFootnotes,
+  hashEnumerators,
+  fencedCode,
+  citations,
+  citationNbsps,
+  pipeTables,
+  tableCaptions,
+}
+
+
+\chapter{Evaluation}
+
+Several requirements were outlined in the introduction. This section evaluates the solution based on those requirements.
+
+Compared to native programs, the solution significantly reduces the length of the development cycle. While the development cycle of native programs can, in worse cases, take several minutes, with Jaculus, it is reduced to several seconds. The build time shows the largest improvement, as no build process is needed for JavaScript programs, and the build time of TypeScript programs is mostly negligible in comparison with native programs. Deployment is also faster, as only the application code is uploaded to the device, in contrast to native programs, where the entire firmware partition is usually overwritten.
+
+
+
+  - Minimum C/C++ (e.g., ESP-IDF)
+  - Arduino (C/C++)
+  - NodeMCU (Lua)
+  - CircuitPython (Python)
+  - Espruino (Javascript)
+
+  - performance
+  - memory usage
+  - extensibility
+  - usability
+  - features
+
+
+\chapter{Conclusion}
+
+The goal of this thesis was to create an ecosystem for programming embedded devices using JavaScript.
+
+The solution consists of Jaculus-dcore library and Jaculus-tool command-line application. The library provides the core functionality of Jaculus devices, and the application is used to interact with the devices. The Jaculus-dcore library is also integrated into the Jaculus-esp32 firmware, which ports the solution to the ESP32 platform.
+
+Two standalone libraries were also created as part of the solution: Jaculus-link and Jaculus-machine. The former is a communication library, and the latter is an implementation of the JavaScript runtime with easy extensibility. Both libraries are well documented and tested, and can be used independently of the rest of the solution.
+
+
+
+
+
+\shorthandon{'}
+\end{markdown*}

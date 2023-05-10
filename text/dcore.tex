@@ -14,9 +14,9 @@
 
 \chapter{Jaculus-dcore}
 
-To make porting Jaculus to different platforms easier, the core functionality of Jaculus device (e.g. communication, control protocol, JavaScript runtime) is implemented in the Jaculus-dcore library in a platform-independent way. The library requires C++20 and POSIX support to be available on the target platform.
+To make porting Jaculus to different platforms easier, the core functionality of Jaculus device (e.g., communication, control protocol, JavaScript runtime) is implemented in the Jaculus-dcore library in a platform-independent way. The library requires C++20 and POSIX support to be available on the target platform.
 
-It uses the Jaculus-machine library for the JavaScript runtime and the Jaculus-link library for communication.
+Jaculus-dcore uses the Jaculus-machine library for the JavaScript runtime and the Jaculus-link library for communication.
 
 \section{Architecture}
 
@@ -45,19 +45,19 @@ The Controller service is implemented in the `Controller` class. It uses a *Pack
 
 The first byte of each packet is used to specify the command to be executed. The rest of the packet is used to transmit command-specific data. The packet structure of the protocol is shown in a diagram in Figure \ref{fig:controller-protocol}.
 
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=\textwidth]{img/controller-protocol}
-    \caption{Controller protocol packet structure}
-    \label{fig:controller-protocol}
-\end{figure}
-
 The service provides the following functionality:
 
   - accessing the device lock
   - controlling the internal Machine instance
   - using the Machine instance's standard input and output
   - monitoring the device status
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=\textwidth]{img/controller-protocol}
+    \caption{Controller protocol packet structure}
+    \label{fig:controller-protocol}
+\end{figure}
 
 \subsection{Filesystem access}
 
@@ -66,13 +66,6 @@ The Uploader service provides access to the filesystem of the device. Unfortunat
 \subsection{Uploader service}
 
 The Uploader service is implemented in the `Uploader` class. Similarly to the Controller service, it uses a *PacketCommunicator* interface to communicate with the client. The first byte of each packet is used to specify the command to be executed. The rest of the packet is used to transmit command-specific data. The packet structure of the protocol is shown in a diagram in Figure \ref{fig:uploader-protocol}.
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=\textwidth]{img/uploader-protocol}
-    \caption{Uploader protocol packet structure}
-    \label{fig:uploader-protocol}
-\end{figure}
 
 The service provides the following functionality:
 
@@ -84,12 +77,19 @@ Most commands are processed in a single packet, but writing files requires the d
 
 Commands for reading a file and listing a directory might also split the data into multiple packets. For simplicity, no flow control is implemented when transmitting data to the client, as the client is expected to be a much more powerful device that can handle the transmission.
 
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=\textwidth]{img/uploader-protocol}
+    \caption{Uploader protocol packet structure}
+    \label{fig:uploader-protocol}
+\end{figure}
+
 
 \section{Usage}
 
 \subsection{Creating a new device}
 
-To create a new device, an instance of the `Device` class must be created. The class is templated by the Machine type used for the JavaScript runtime. Creation of Machine type is described in ((TODO)).
+To create a new device, an instance of the `Device` class must be created. The class is templated by the Machine type used for the JavaScript runtime. The definition of a Machine type is described in ((TODO)).
 
 The `Device` must be connected to a communication interface. The object exposes a `Router` object from Jaculus-link, which should be used to connect the device to a data link. Definition and binding of a data link is described in ((TODO)).
 

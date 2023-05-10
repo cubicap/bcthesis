@@ -45,9 +45,9 @@ Fortunately, this is not a problem for well-written code, which handles all poss
 To fix this, modifying QuickJS internals would be required, which is outside the scope of this work, but it is an essential consideration for future work.
 
 
-\section{ESP32 filesystem API}
+\section{Filesystem API}
 
-As the filesystem MFeature is implemented using C++ `std::filesystem`, which is not yet fully supported by the ESP-IDF, some of its functionality might not work, and some may even block the runtime.
+As the filesystem MFeature is implemented using C++ `std::filesystem` API, which is not yet fully supported by the ESP-IDF, some of its functionality does not work, and some may even block the runtime.
 
 The broken functionality involves listing directories -- `readdir` and `rmdir`. Fortunately, working with files works without a problem, which is an essential functionality for loading JavaScript files.
 
