@@ -23,7 +23,7 @@ Compared to native programs, the solution significantly reduces the length of th
 
 There are already existing solutions to this problem and while it would be nice to have a detailed comparison of at least some of them, it is out of the scope of this thesis. However, a brief comparison of Jaculus with other solutions is provided in this section.
 
-A common point of all of the mentioned solutions is their much larger feature set compared to Jaculus. They have not only much larger hardware and library support, but also larger ecosystems and communities. Espruino and CircuitPython provide very convenient development environments.
+A common point of all of the solutions mentioned below is their much larger feature set compared to Jaculus. They have not only much larger hardware and library support, but also larger ecosystems and communities. Espruino and CircuitPython provide very convenient development environments.
 
 All of the mentioned solutions are implemented in C and allow extensibility via C modules. In contrast, Jaculus is written in high-level C++ and allows extensibility in a very different fashion, which is described in the previous chapters. While the C approach is more efficient, the C++ approach is more convenient for the user and allows easy reuse of existing C and C++ libraries.
 
@@ -31,7 +31,7 @@ All of the mentioned solutions are implemented in C and allow extensibility via 
 
 Espruino is a JavaScript interpreter for microcontrollers and supports a wide range of devices, including ESP8266 and ESP32.
 
-The biggest problem of Espruino is its performance. Internally, it parses the JavaScript code into an abstract syntax tree, which is then directly interpreted. This approach is very slow, and the performance of Espruino is significantly worse than the performance of QuickJS, which is used in Jaculus.
+The biggest problem of Espruino is its performance. Internally, it parses the JavaScript code into an abstract syntax tree, which is then directly interpreted. This approach is very slow, and the performance of Espruino is significantly worse than the performance of QuickJS, which is used in Jaculus. Running the same computational benchmarks\footnote{The used benchmarks were taken from \url{https://sschakraborty.github.io/benchmark/typescript.html}, their test length was shortened, and they were transpiled to the same JavaScript code for both interpreters.} on both interpreters on the ESP32 shows that QuickJS is around 70 times faster in computational tasks than Espruino.
 
 \subsection{NodeMCU}
 
@@ -56,6 +56,7 @@ The solution consists of Jaculus-dcore library and Jaculus-tool command-line app
 
 Two standalone libraries were also created as part of the solution: Jaculus-link and Jaculus-machine. The former is a communication library, and the latter is an implementation of the JavaScript runtime with easy extensibility. Both libraries are well documented and tested, and can be used independently of the rest of the solution.
 
+Although the solution is in usable state, there are still some features missing and some bugs present. Most importantly, more MFeatures need to be implemented for Jaculus to be a viable alternative to other existing solutions. Further improvements can also be made to the upload protocol, which is currently very simple and could have better performance.
 
 \shorthandon{'}
 \end{markdown*}
