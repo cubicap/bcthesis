@@ -20,7 +20,7 @@ Because the services running on the device work mostly independently, communicat
 
 Sometimes, the device may have multiple communication interfaces, which can be used for communication with the host. In such cases, it is desirable to be able to route the communication to the appropriate interface.
 
-This functionality is implemented in the Jaculus-link library, which provides a way to multiplex multiple channels on a single stream connection and route the communication to the appropriate interface.
+This functionality is implemented in the Jaculus-link library, which provides a way to multiplex 256 channels on a single stream connection and to route the communication to the appropriate interface. The library is implemented strictly using only C++ 20 standard library for easy portability. For this reason, it does not provide an implementation for communication interfaces, and the user must provide one themselves.
 
 \section{Architecture}
 
@@ -34,7 +34,7 @@ The model of Jaculus-link is split into three layers:
 
 The data link is responsible for transmitting data along with channel identifiers. The data link provided in this library is implemented in the `Mux` class, which multiplexes 256 channels on a single stream connection.
 
-It is possible to use other data link implementations as long as they implement the `ChannelTransmitter` interface for transmission and provide a way to connect them to a `ChannelReceiver` for processing received data.
+It is possible to use other data link implementations as long as they implement the `DataLinkTx` interface for transmission and provide a way to connect them to a `DataLinkRx` for processing received data.
 
 \subsection{Routing layer}
 
@@ -62,22 +62,22 @@ The default configuration of the full pipeline provided by the library is shown 
 \end{figure}
 
 
-\section{Implementation}
+\section{Multiplexer protocol}
 
-The library is implemented strictly using only C++ 20 standard library for easy portability. For this reason, it does not provide an implementation for communication interfaces, and the user must provide one themselves.
+The library provides one protocol for the multiplexer in the class `CobsEncoder`. The protocol is based on a modified version of the COBS\cite{cobs} algorithm for data framing and was originally proposed\footnote{The discussion can be found at \url{https://github.com/yaqwsx/Jaculus/pull/15}.} by Jaroslav Malec for the use in the predecessor version of the Jaculus project.
 
-\subsection{Multiplexer protocol}
+In the original COBS algorithm, a delimiter byte --- typically zero --- is inserted at the end of the data frame. To encode the transmitted data, every occurrence of the delimiter byte in the data is replaced by a value, that represents the number of bytes to the next delimiter byte. This allows for data framing with a fixed two-byte overhead while limiting the maximum data size to 254 bytes.
 
-The library provides one protocol for the multiplexer in the class `CobsEncoder`. The protocol uses the COBS ((TODO)) algorithm for data framing, which is paired with a CRC16 checksum. Jaroslav Malec ((TODO)) originally proposed the use of this protocol for the predecessor version of the Jaculus project ((TODO: explain?)).
+The modified version of the algorithm moves the delimiter byte to the start of the data frame and adds length information to the second byte of the data frame. The rest of the data frame is encoded in the same way as in the original algorithm, except for the missing delimiter byte at the end of the data frame, which is only implied by the data frame length. Every such data frame has a three-byte overhead and can contain up to 254 bytes of data. Moving the delimiter byte to the start of the data frame allows for resetting the packetization state in case a previous data frame is lost, malformed, or other corrupted data is received on the stream.
 
-Figure \ref{fig:cobs-diagram} shows a data frame structure diagram. After the start of the data frame, the first byte of the packet data is the channel identifier, followed by the transmitted data. The last two bytes of the packet are the CRC16 checksum of the packet data.
+Figure \ref{fig:cobs-diagram} shows a data frame structure diagram. In the data section of the data frame, the first byte contains the channel identifier, followed by the transmitted data. The last two bytes of the data frame contain the CRC16 checksum of the data section.
 
-The delimiter byte at the start of the packet allows for resetting the packetization state in case a previous packet is lost, malformed, or other corrupted data is received.
 
 \begin{figure}[!ht]
     \centering
     \includegraphics[width=\textwidth]{img/cobs-diagram}
-    \caption{COBS protocol packet structure}
+    \caption{Diagram of the COBS-based multiplexer protocol}
+    \small{Adapted from: MALEC, Jaroslav. *Protocol diagram*. In: GitHub \[online\]. 2021 \[visited on 2023-05-10\]. Available from: \url{https://github.com/yaqwsx/Jaculus/pull/15}.}
     \label{fig:cobs-diagram}
 \end{figure}
 

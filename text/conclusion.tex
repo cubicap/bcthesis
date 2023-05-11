@@ -19,31 +19,42 @@ Several requirements were outlined in the introduction. This section evaluates t
 
 Compared to native programs, the solution significantly reduces the length of the development cycle. While the development cycle of native programs can, in worse cases, take several minutes, with Jaculus, it is reduced to several seconds. The build time shows the largest improvement, as no build process is needed for JavaScript programs, and the build time of TypeScript programs is mostly negligible in comparison with native programs. Deployment is also faster, as only the application code is uploaded to the device, in contrast to native programs, where the entire firmware partition is usually overwritten.
 
+\section{Comparison with other solutions}
 
+There are already existing solutions to this problem and while it would be nice to have a detailed comparison of at least some of them, it is out of the scope of this thesis. However, a brief comparison of Jaculus with other solutions is provided in this section.
 
-  - Minimum C/C++ (e.g., ESP-IDF)
-  - Arduino (C/C++)
-  - NodeMCU (Lua)
-  - CircuitPython (Python)
-  - Espruino (Javascript)
+A common point of all of the mentioned solutions is their much larger feature set compared to Jaculus. They have not only much larger hardware and library support, but also larger ecosystems and communities. Espruino and CircuitPython provide very convenient development environments.
 
-  - performance
-  - memory usage
-  - extensibility
-  - usability
-  - features
+All of the mentioned solutions are implemented in C and allow extensibility via C modules. In contrast, Jaculus is written in high-level C++ and allows extensibility in a very different fashion, which is described in the previous chapters. While the C approach is more efficient, the C++ approach is more convenient for the user and allows easy reuse of existing C and C++ libraries.
+
+\subsection{Espruino}
+
+Espruino is a JavaScript interpreter for microcontrollers and supports a wide range of devices, including ESP8266 and ESP32.
+
+The biggest problem of Espruino is its performance. Internally, it parses the JavaScript code into an abstract syntax tree, which is then directly interpreted. This approach is very slow, and the performance of Espruino is significantly worse than the performance of QuickJS, which is used in Jaculus.
+
+\subsection{NodeMCU}
+
+NodeMCU is a firmware for ESP8266 and ESP32, which provides a Lua interpreter. It is very popular among hobbyists and has a large community.
+
+Without running some benchmarks, it is difficult to say how the performance of NodeMCU compares to Jaculus. However, we can guess, that Lua provides very good performance, as Lua interpreters are well known for their speed.
+
+As outlined in the introduction, Lua is not a very popular language, and it is not very suitable for teaching purposes.
+
+\subsection{CircuitPython}
+
+CircuitPython is a fork of MicroPython, which is a Python interpreter for microcontrollers. It supports a wide range of devices, including the ESP32 platform.
+
+Because Python is very resource-intensive, CircuitPython only implements a subset of the language with slight modifications. This makes it incompatible with the standard Python interpreter, which could be considered a disadvantage.
 
 
 \chapter{Conclusion}
 
 The goal of this thesis was to create an ecosystem for programming embedded devices using JavaScript.
 
-The solution consists of Jaculus-dcore library and Jaculus-tool command-line application. The library provides the core functionality of Jaculus devices, and the application is used to interact with the devices. The Jaculus-dcore library is also integrated into the Jaculus-esp32 firmware, which ports the solution to the ESP32 platform.
+The solution consists of Jaculus-dcore library and Jaculus-tool command-line application. The library provides the core functionality of a Jaculus device, and the application provides a way to interact with the device. The Jaculus-dcore library is also integrated into the Jaculus-esp32 firmware, which ports the solution to the ESP32 platform.
 
 Two standalone libraries were also created as part of the solution: Jaculus-link and Jaculus-machine. The former is a communication library, and the latter is an implementation of the JavaScript runtime with easy extensibility. Both libraries are well documented and tested, and can be used independently of the rest of the solution.
-
-
-
 
 
 \shorthandon{'}

@@ -1,5 +1,6 @@
 ﻿.vscode
 _markdown_*
+thesis.pdf
 *.aux
 *.bbl
 *.bcf
@@ -14,8 +15,9 @@ _markdown_*
 *.lot
 *.markdown.in
 *.out
-*.pdf
 *.run.xml
 *.synctex.gz
 *.toc
 *.synctex(busy)
+*.drawio.bkp
+*.drawio.dtmp

@@ -37,7 +37,7 @@ The solution should also provide an ecosystem for managing the device and develo
   - a firmware for the microcontroller, which gives complete control over the device to the runtime environment and provides an API for managing the device
   - a command-line application for managing the device and uploading code to it
 
-\subsection{Language choice}
+\section{Language choice}
 
 Many interpreted languages are available. Because of their popularity in embedding into other applications, the following languages were considered:
 
@@ -53,7 +53,7 @@ JavaScript is a popular language commonly used in web browsers. The language spe
 
 For the above reasons, JavaScript was chosen to be used in the final solution.
 
-Because JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as compiling or running TypeScript on a microcontroller is not feasible, it must first be transpiled\footnote{Transpilation is the process of source-to-source compilation} to JavaScript.
+Because JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as compiling or running TypeScript on a microcontroller is not feasible, it must first be transpiled\footnote{Transpilation refers to the process of source-to-source compilation} to JavaScript.
 
 
 \chapter{Overview}
@@ -78,7 +78,7 @@ The V8 engine is the most popular JavaScript engine, used in Google Chrome and N
 
 DukTape and MuJS are small, embeddable JavaScript engines. They are suitable for embedded devices but support old versions of the ECMAScript specification.
 
-QuickJS is a small, embeddable JavaScript engine that supports the ECMAScript 2020 specification. On a desktop platform, it is 2-4 times faster ((TODO)) than DukTape and MuJS, for the price of a larger memory footprint, which is still small enough to run on a microcontroller.
+QuickJS is a small, embeddable JavaScript engine that supports the ECMAScript 2020 specification. On a desktop platform, it is 2-4 times faster\cite{quickjs} than DukTape and MuJS, for the price of a larger memory footprint, which is still small enough to run on a microcontroller.
 
 The final solution uses QuickJS. Compared to the other options, it stands on a nice middle ground regarding its feature set, performance, and memory footprint.
 
@@ -86,7 +86,7 @@ The final solution uses QuickJS. Compared to the other options, it stands on a n
 
 There should be a way to communicate with the device --- to upload code, control the runtime and monitor the device's state.
 
-Most microcontrollers feature a serial interface, such as a USB to UART bridge or a native USB interface. A serial interface, however, only provides a single duplex byte stream, meaning a protocol must be implemented on top of it to support multiple services over a single connection.
+Most microcontrollers feature a serial interface, such as a USB to UART bridge or a native USB interface. A serial interface, however, only provides a single duplex byte stream, meaning a protocol must be implemented on top of it to enable communication with multiple services over a single connection.
 
 Using a single stream connection also adds flexibility in the choice of the transport medium. Aside from the serial interface, the protocol can be used over a network socket, web socket, or any other byte stream connection.
 
