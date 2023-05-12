@@ -19,33 +19,39 @@ Several requirements were outlined in the introduction. This section evaluates t
 
 Compared to native programs, the solution significantly reduces the length of the development cycle. While the development cycle of native programs can, in worse cases, take several minutes, with Jaculus, it is reduced to several seconds. The build time shows the largest improvement, as no build process is needed for JavaScript programs, and the build time of TypeScript programs is mostly negligible in comparison with native programs. Deployment is also faster, as only the application code is uploaded to the device, in contrast to native programs, where the entire firmware partition is usually overwritten.
 
+The shortened development cycle naturally comes at a price; that being the performance of JavaScript as an interpreted language. However, the performance is still sufficient for running most application logic, and if a performance-sensitive part of the application is identified, it can be reimplemented in C++ and compiled into a native module.
+
 \section{Comparison with other solutions}
 
-There are already existing solutions to this problem and while it would be nice to have a detailed comparison of at least some of them, it is out of the scope of this thesis. However, a brief comparison of Jaculus with other solutions is provided in this section.
+There are already existing solutions to programming microcontrollers using JavaScript and while it would be nice to have a detailed comparison of at least some of them, it would expand the scope of this thesis too much. However, a brief comparison of Jaculus with other solutions is provided in this section. These solutions were chosen based on their popularity:
 
-A common point of all of the solutions mentioned below is their much larger feature set compared to Jaculus. They have not only much larger hardware and library support, but also larger ecosystems and communities. Espruino and CircuitPython provide very convenient development environments.
+- CircuitPython (fork of MicroPython)
+- NodeMCU (Lua)
+- Espruino (JavaScript)
+- Moddable SDK (JavaScript)
 
-All of the mentioned solutions are implemented in C and allow extensibility via C modules. In contrast, Jaculus is written in high-level C++ and allows extensibility in a very different fashion, which is described in the previous chapters. While the C approach is more efficient, the C++ approach is more convenient for the user and allows easy reuse of existing C and C++ libraries.
+A common point of all of these solutions is their much larger feature set compared to Jaculus. They have not only much larger hardware and library support but also larger ecosystems and communities. Espruino and CircuitPython provide very convenient development environments.
 
-\subsection{Espruino}
+What sets Jaculus aside from the other solutions is its much higher-level abstraction around different JavaScript concepts. This allows for much easier wrapping of existing libraries and other code to JavaScript modules, meaning that while the hardware support of Jaculus is currently low, adding more features to the runtime is a quick and simple task.
 
-Espruino is a JavaScript interpreter for microcontrollers and supports a wide range of devices, including ESP8266 and ESP32.
+\subsection{Non-JavaScript solutions}
 
-The biggest problem of Espruino is its performance. Internally, it parses the JavaScript code into an abstract syntax tree, which is then directly interpreted. This approach is very slow, and the performance of Espruino is significantly worse than the performance of QuickJS, which is used in Jaculus. Running the same computational benchmarks\footnote{The used benchmarks were taken from \url{https://sschakraborty.github.io/benchmark/typescript.html}, their test length was shortened, and they were transpiled to the same JavaScript code for both interpreters.} on both interpreters on the ESP32 shows that QuickJS is around 70 times faster in computational tasks than Espruino.
+Comparing different languages, and especially their performance, is a notoriously difficult task, as each language has its own strengths and weaknesses. The comparison is therefore focused on the usability of the used languages.
 
-\subsection{NodeMCU}
+MicroPython and CircuitPython are implementations of Python 3. They are very popular in the maker community and have a large ecosystem of libraries and tools. However, they only support a limited subset of the language, which means that some Python code cannot be run on them, which could be seen as a disadvantage.
 
-NodeMCU is a firmware for ESP8266 and ESP32, which provides a Lua interpreter. It is very popular among hobbyists and has a large community.
+NodeMCU is a Lua interpreter for ESP8266 and ESP32 microcontrollers. On one hand, it is a well-established solution with an existing community. On the other hand, as mentioned in the introduction, Lua by itself is not nearly as popular as other languages, which makes it less attractive for developers.
 
-Without running some benchmarks, it is difficult to say how the performance of NodeMCU compares to Jaculus. However, we can guess, that Lua provides very good performance, as Lua interpreters are well known for their speed.
+\subsection{JavaScript solutions}
 
-As outlined in the introduction, Lua is not a very popular language, and it is not very suitable for teaching purposes.
+The comparison of Jaculus with the other JavaScript solutions is more straightforward, as they all share the same language. The main difference between them is their performance and the way they are implemented.
 
-\subsection{CircuitPython}
+Their performance was compared by running the same computational benchmarks on the ESP32 microcontroller. The results are shown in table ((TODO)).
 
-CircuitPython is a fork of MicroPython, which is a Python interpreter for microcontrollers. It supports a wide range of devices, including the ESP32 platform.
 
-Because Python is very resource-intensive, CircuitPython only implements a subset of the language with slight modifications. This makes it incompatible with the standard Python interpreter, which could be considered a disadvantage.
+Espruino is a JavaScript interpreter for microcontrollers and supports a wide range of devices, including the ESP32. The biggest problem of Espruino is its low performance. It is caused by the fact, that internally, Espruino parses the JavaScript code into an abstract syntax tree, which is then directly interpreted, instead of compiling it into bytecode.
+
+Moddable SDK is a JavaScript runtime for microcontrollers. It is a commercial product, but it is open-source and free for non-commercial use. ((TODO: approach))
 
 
 \chapter{Conclusion}
