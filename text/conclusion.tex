@@ -46,12 +46,36 @@ NodeMCU is a Lua interpreter for ESP8266 and ESP32 microcontrollers. On one hand
 
 The comparison of Jaculus with the other JavaScript solutions is more straightforward, as they all share the same language. The main difference between them is their performance and the way they are implemented.
 
-Their performance was compared by running the same computational benchmarks on the ESP32 microcontroller. The results are shown in table ((TODO)).
+Espruino is an open-source JavaScript interpreter for microcontrollers. The biggest problem of Espruino is its low performance, which can be seen in the performance comparison below.
+
+Moddable SDK is another JavaScript runtime for microcontrollers. It is a commercial product, but it is open-source and free for non-commercial use. Instead of interpreting the JavaScript code on the device, Moddable SDK compiles it into bytecode on the host machine, packs necessary native libraries, and builds a full firmware image, which is then uploaded to the device. This approach allows for a smaller runtime footprint but causes a slightly longer development cycle and requires much more complex tooling.
+
+Their performance was compared by running the same benchmarks on the ESP32 microcontroller. Aside from the GPIO benchmark, the benchmarks were taken from the Computer Language Benchmarks Game\footnote{In: Debian Salsa \[online\]. 2018 \[visited on 2023-05-13\]. Available from: \url{https://salsa.debian.org/benchmarksgame-team/archive-alioth-benchmarksgame}} and slightly modified for each platform to fit the provided API. The GPIO benchmark was created specifically for this comparison and measures the time it takes to toggle a GPIO pin *n* times. The results of the comparison are shown in Table \ref{tab:performance}.
+
+The benchmarks show that in computational tasks, Jaculus is significantly faster than Espruino and Moddable SDK. Moddable SDK is faster in the binary-trees benchmark, which is targeted at the creation of new objects and memory allocation. Moddable SDK is also faster in the GPIO benchmark, which may be caused by the higher-level abstraction used to implement the native module in Jaculus.
+
+The low performance of Espruino can be attributed to the fact, that internally, Espruino parses the JavaScript code into an abstract syntax tree, which is then directly interpreted, in contrast to the approach used by Jaculus and Moddable SDK, where the code is first compiled into bytecode and then interpreted.
 
 
-Espruino is a JavaScript interpreter for microcontrollers and supports a wide range of devices, including the ESP32. The biggest problem of Espruino is its low performance. It is caused by the fact, that internally, Espruino parses the JavaScript code into an abstract syntax tree, which is then directly interpreted, instead of compiling it into bytecode.
+\begin{table}[ht]
+  \raggedright
+  The results are run times in milliseconds, lower is better.
 
-Moddable SDK is a JavaScript runtime for microcontrollers. It is a commercial product, but it is open-source and free for non-commercial use. ((TODO: approach))
+  \centering
+
+  | Test                  | Jaculus     | Espruino    | XS          |
+  |-----------------------|------------:|------------:|------------:|
+  | n-body (n=50)         | 36.2        | 4333.1      | 54.4        |
+  | fannkuch-redux (n=6)  | 35.6        | 12335.3     | 75.0        |
+  | spectral-norm (n=10)  | 48.9        | 10749.9     | 91.4        |
+  | binary-trees (n=3)    | 279.3       | 19930.4     | 187.6       |
+  | GPIO (n=5000)         | 756.1       | 11720.4     | 54.7        |
+
+
+  \caption{Performance comparison of Jaculus with other JavaScript solutions}
+
+  \label{tab:performance}
+\end{table}
 
 
 \chapter{Conclusion}
