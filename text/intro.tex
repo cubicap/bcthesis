@@ -16,7 +16,7 @@
 
 Microcontrollers in embedded devices are typically programmed in compiled languages like C, C++, or Rust. Although these languages provide high performance and low overhead at runtime, they can be challenging to learn and use.
 
-Another problem of compiled languages, especially in embedded environments, is a long development cycle. Because of the limited resources of a microcontroller, the executable of such applications is usually self-contained and, besides the application itself, contains all used libraries, including the standard ones. All libraries must be linked on every build and, in some cases, also compiled regardless of whether they have changed.
+Another problem of compiled languages, especially in embedded environments, is a long development cycle. Because of the limited resources of a microcontroller ((TODO)), the executable of such applications is usually self-contained and, besides the application itself, contains all used libraries, including the standard ones. All libraries must be linked on every build and, in some cases, also compiled regardless of whether they have changed.
 
 The development cycle is often further prolonged by long deployment times. The build-deploy process can take several minutes, severely hindering development speed, especially in the early development stages when the developer rapidly iterates over the code.
 
@@ -55,16 +55,18 @@ JavaScript is a popular language commonly used in web browsers. The language spe
 
 Because of the reasons mentioned above, JavaScript was chosen to be used in the solution implemented in this thesis.
 
-Because JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as transpiling\footnote{Transpilation refers to the process of source-to-source compilation} or interpreting TypeScript on a microcontroller is not feasible, it must first be transpiled to JavaScript outside of the device.
+Because ((TODO)) JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as transpiling\footnote{Transpilation refers to the process of source-to-source compilation} or interpreting TypeScript on a microcontroller is not feasible, it must first be transpiled to JavaScript outside of the device.
 
 
 \chapter{Overview}
 
 The main task is to create a JavaScript runtime environment for microcontrollers and an ecosystem around it for managing the device and developing applications for it.
 
-The implementation should primarily focus on the ESP32 and ESP32-S3 microcontrollers, as they are popular in the maker community and provide high performance at a reasonably low price.
+((TODO))The implementation should primarily focus on the ESP32 and ESP32-S3 microcontrollers, as they are popular in the maker community and provide high performance at a reasonably low price.
 
-A firmware for a microcontroller, which gives complete control over the device to the JavaScript runtime and provides an interface for programming and controlling the device, should be created. A device running this firmware will be called a *Jaculus device*.
+((TODO))A firmware for a microcontroller, which gives complete control over the device to the JavaScript runtime and provides an interface for programming and controlling the device, should be created. A device running this firmware will be called a *Jaculus device*.
+
+((TODO obrazek))
 
 \section{Runtime environment}
 
