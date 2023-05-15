@@ -14,7 +14,7 @@
 
 \chapter{Jaculus-esp32}
 
-By adding hardware bindings to Jaculus-dcore, it is possible to create a firmware for a specific platform. The version created as a part of this thesis is Jaculus-esp32.
+By adding hardware bindings to Jaculus-dcore, it is possible to create firmware for a specific platform. The version created as a part of this thesis is Jaculus-esp32.
 
 Jaculus-esp32 is a Jaculus device firmware for the ESP32 and ESP32-S3 microcontrollers. It uses the ESP-IDF framework and supports connection to a computer via a serial port.
 
@@ -29,12 +29,13 @@ Aside from the features provided by Jaculus-dcore, Jaculus-esp32 only implements
 
 Jaculus-esp32 also implements a specialized event queue based on a FreeRTOS queue and supports scheduling events from an interrupt context. This is used in the GPIO feature, which generates events when the state of a pin changes through an interrupt.
 
+Implementation of the Neopixel MFeature uses the SmartLeds\footnote{In: GitHub \[online\]. \[visited on 2023-05-14\]. Available from: \url{https://github.com/RoboticsBrno/SmartLeds}} library by RoboticsBrno. The library also allows the control of other types of smart LED strips, but for simplicity, only the WS2812B type is supported by the Neopixel MFeature. The MFeature implementation also nicely demonstrates the use of Jaculus-machine for wrapping existing C++ libraries.
 
 \section{Usage}
 
 The firmware can be flashed to the device manually using ESP-IDF tools or the Jaculus command-line tool described in the next chapter.
 
-The firmware uses the Jaculus-machine ((TODO: link)) runtime at its core, which means that adding new features to the runtime is done the same way as described in ((TODO: link)).
+The firmware uses the Jaculus-machine runtime at its core, which means that adding new features to the runtime is done the same way as described in Chapter \ref{chap:machine}.
 
 \shorthandon{'}
 \end{markdown*}

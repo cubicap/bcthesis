@@ -14,13 +14,15 @@
 
 \chapter{Motivation}
 
-Microcontrollers in embedded devices are typically programmed in compiled languages, such as C, C++, or Rust. Although these languages provide high performance and low overhead at runtime, they can be difficult to learn and use.
+Microcontrollers in embedded devices are typically programmed in compiled languages like C, C++, or Rust. Although these languages provide high performance and low overhead at runtime, they can be challenging to learn and use.
 
-Another problem of compiled languages in embedded environments is a long development cycle. Because of the limited resources of a microcontroller, the executable of such applications is usually self-contained, and, besides the application itself, contains all used libraries, including the standard ones. All of the libraries must be linked on every build and in some cases also compiled regardless of whether they have changed. The development cycle is often further prolonged by long deployment times. The build-deploy process can take several minutes, severely hindering development speed, especially in the early development stages when the developer rapidly iterates over the code.
+Another problem of compiled languages, especially in embedded environments, is a long development cycle. Because of the limited resources of a microcontroller, the executable of such applications is usually self-contained and, besides the application itself, contains all used libraries, including the standard ones. All libraries must be linked on every build and, in some cases, also compiled regardless of whether they have changed.
 
-Teaching embedded programming to beginners is a big motivator for reducing the development cycle length. Seeing the results of their work quickly is important for keeping them motivated and interested in the subject, especially with children and their increasingly short attention span.
+The development cycle is often further prolonged by long deployment times. The build-deploy process can take several minutes, severely hindering development speed, especially in the early development stages when the developer rapidly iterates over the code.
 
-As embedded devices often interact with the physical world or communicate with other devices, they often have to wait for external events rather than actively perform some computation. Therefore, most embedded applications have reactive and asynchronous elements, which are difficult to express in low-level languages. This induces a lot of boilerplate code, which obfuscates the main application logic and makes it harder to develop and maintain. Even though high-level languages such as C++ and Rust somewhat alleviate this issue, C is often the only language with direct support from the manufacturers, adding more work for the developer.
+The long development cycle can both hinder development speed and increase the development cost. Another big motivator for reducing the development cycle length is teaching beginners embedded programming. Seeing the results of their work quickly is important for keeping them motivated and interested in the subject, especially with children and their increasingly short attention spans.
+
+As embedded devices often interact with the physical world or communicate with other devices, they often have to wait for external events rather than continuously perform some computation. Therefore, most embedded applications have reactive and asynchronous elements, which are difficult to express in low-level languages. This induces a lot of boilerplate code, which obfuscates the main application logic and makes it harder to develop and maintain. Even though high-level languages such as C++ and Rust somewhat alleviate this issue, C is often the only language with direct support from the manufacturers, which adds more work for the developer and adds more code to the project.
 
 
 \chapter{Proposed solution}
@@ -30,12 +32,12 @@ The proposed solution is to use a high-level, interpreted language instead. The 
   - have low enough hardware requirements to run on a microcontroller
   - be easy to learn and use
   - be able to express reactive and asynchronous elements
-  - be embeddable into C/C++ applications
 
-The solution should also provide an ecosystem for managing the device and developing applications. The ecosystem should include:
+\noindent
+The solution should also provide an ecosystem for controlling the device and developing applications. The ecosystem should include:
 
-  - a firmware for the microcontroller, which gives complete control over the device to the runtime environment and provides an API for managing the device
-  - a command-line application for managing the device and uploading code to it
+  - a firmware for the microcontroller, which gives complete control over the device to the runtime environment and provides an interface for controlling the device
+  - a command-line application for controlling the device and uploading code to it
 
 \section{Language choice}
 
@@ -45,48 +47,48 @@ Many interpreted languages are available. Because of their popularity in embeddi
   - Lua
   - JavaScript
 
-Python is a general-purpose language with an extensive standard library, which makes it suitable for many applications. However, it is not suitable for embedded platforms due to its high memory requirements caused by its large standard library.
+Python is a general-purpose language with an extensive standard library, which makes it suitable for many applications. However, its high hardware requirements caused by its large standard library and memory model make it unsuitable for embedded devices.
 
-Lua is a lightweight scripting language with a small standard library. It is suitable for embedded devices and there are Lua interpreters, which are embeddable into C/C++ applications. On the other hand, Lua is not nearly as popular as Python and JavaScript, making it harder to find relevant resources and justify learning a new language.
+Lua is a lightweight scripting language with a small standard library. It is suitable for embedded devices, and there are efficient Lua interpreters which are embeddable into C/C++ applications. On the other hand, Lua is not nearly as popular as Python and JavaScript, making it harder to find relevant resources and justify learning a new language.
 
 JavaScript is a popular language commonly used in web browsers. The language specification defines a small standard library, which is extended by the runtime environment, meaning a small memory footprint. It also maps very well to the event-centered nature of many embedded systems, as JavaScript is inherently event-driven. Multiple embeddable JavaScript engines exist, such as DukTape, MuJS, and QuickJS.
 
-For the above reasons, JavaScript was chosen to be used in the final solution.
+Because of the reasons mentioned above, JavaScript was chosen to be used in the solution implemented in this thesis.
 
-Because JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as compiling or running TypeScript on a microcontroller is not feasible, it must first be transpiled\footnote{Transpilation refers to the process of source-to-source compilation} to JavaScript.
+Because JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as transpiling\footnote{Transpilation refers to the process of source-to-source compilation} or interpreting TypeScript on a microcontroller is not feasible, it must first be transpiled to JavaScript outside of the device.
 
 
 \chapter{Overview}
 
 The main task is to create a JavaScript runtime environment for microcontrollers and an ecosystem around it for managing the device and developing applications for it.
 
-The runtime should primarily focus on the ESP32 and ESP32-S3 microcontrollers, as they are prevalent in the maker community and provide high performance at a low price.
+The implementation should primarily focus on the ESP32 and ESP32-S3 microcontrollers, as they are popular in the maker community and provide high performance at a reasonably low price.
 
 A firmware for a microcontroller, which gives complete control over the device to the JavaScript runtime and provides an interface for programming and controlling the device, should be created. A device running this firmware will be called a *Jaculus device*.
 
 \section{Runtime environment}
 
-The runtime environment should be able to run JavaScript code and be easily extensible with functionality implemented in C++. The runtime should be usable as the main interface for programming the device and as a component of a larger application.
+The runtime environment should be able to run JavaScript code and be easily extensible with functionality implemented in C++. The runtime should be usable as the primary interface for programming the device and as a component of a larger application.
 
 An example use case for the latter is in a system of devices used as game elements. Their low-level logic (e.g., communication, user interface) can be implemented in C++, while the high-level logic (e.g., game rules) can be updated independently by the user.
 
 \section{JavaScript engine}
 
-A JavaScript engine is needed to interpret JavaScript code. Implementing a custom JavaScript engine would be a significant undertaking, so an existing one is used instead. There are multiple options, the popular ones being V8, DukTape, MuJS, QuickJS.
+A JavaScript engine is needed to interpret JavaScript code. As implementing a custom JavaScript engine would be a significant undertaking, an existing one is used instead. There are multiple options, the popular ones being V8, DukTape, MuJS, and QuickJS.
 
-The V8 engine is the most popular JavaScript engine, used in Google Chrome and Node.js. It is a high-performance engine with a very large memory footprint, making it impossible to run on a microcontroller.
+The V8 engine is the most popular JavaScript engine and is used in Google Chrome and Node.js. It is a high-performance engine with a very large memory footprint, making it impossible to run on a microcontroller.
 
 DukTape and MuJS are small, embeddable JavaScript engines. They are suitable for embedded devices but support old versions of the ECMAScript specification.
 
-QuickJS is a small, embeddable JavaScript engine that supports the ECMAScript 2020 specification. On a desktop platform, it is 2-4 times faster\cite{quickjs} than DukTape and MuJS, for the price of a larger memory footprint, which is still small enough to run on a microcontroller.
+QuickJS is a small, embeddable JavaScript engine that supports the ECMAScript 2020 specification. According to benchmarks published by its author\cite{quickjs-bench}, on a desktop platform, it is 2-4 times faster than DukTape and MuJS, for the price of a larger memory footprint, which is still small enough to run on a microcontroller.
 
-The final solution uses QuickJS. Compared to the other options, it stands on a nice middle ground regarding its feature set, performance, and memory footprint.
+The created solution uses QuickJS because, compared to the other options, it stands on a nice middle ground regarding its feature set, performance, and memory footprint.
 
 \section{Communication}
 
 There should be a way to communicate with the device --- to upload code, control the runtime and monitor the device's state.
 
-Most microcontrollers feature a serial interface, such as a USB to UART bridge or a native USB interface. A serial interface, however, only provides a single duplex byte stream, meaning a protocol must be implemented on top of it to enable communication with multiple services over a single connection.
+Most microcontrollers feature a serial interface, such as a USB to UART bridge or a native USB interface. A serial interface only provides a single duplex byte stream, meaning a protocol must be implemented on top of it to enable communication with multiple services over a single connection.
 
 Using a single stream connection also adds flexibility in the choice of the transport medium. Aside from the serial interface, the protocol can be used over a network socket, web socket, or any other byte stream connection.
 
@@ -104,6 +106,8 @@ To achieve the goals described above and to allow possible future reuse of indep
   - Jaculus-tools -- command-line application for controlling and monitoring Jaculus devices
   - Jaculus-esp32 -- Jaculus device port for the ESP32 platform (with support for ESP32 and ESP32-S3 SOCs)
 
+The components are described in more detail in their respective chapters.
+
 
 \chapter{Used technologies}
 
@@ -118,6 +122,8 @@ ESP32 is a dual-core microcontroller based on the Xtensa LX6 CPU architecture wi
 ESP32-S3 is a dual-core microcontroller based on the Xtensa LX7 CPU architecture with 512 KiB of SRAM. It features a native USB interface and a UART interface for programming.
 
 Both of these microcontrollers also provide a Wi-Fi and Bluetooth interface and a large number of other peripherals. On many boards based on these microcontrollers, the programming UART interface is connected to a USB-to-UART bridge, which allows the microcontroller to be programmed over USB. The USB ports are also often used for communication with the program running on the microcontroller.
+
+These microcontrollers are also coupled with flash memory, which stores the firmware and can be used to store other data. The flash memory size varies between boards, but it is usually at least 4 MiB.
 
 \section{ESP-IDF}
 
@@ -137,11 +143,11 @@ TypeScript is a strongly typed superset of JavaScript. It is developed and maint
 
 \section{QuickJS}
 
-QuickJS\cite{quickjs} is a JavaScript engine implementing the ECMAScript 2020 specification\cite{es2020} (ES2020). It was developed by Fabrice Bellard and is licensed under the MIT license. It is written in C and is designed to be embeddable in other applications.
+QuickJS\cite{quickjs} is a JavaScript engine implementing the ECMAScript 2020 Language Specification\cite{es2020} (ES2020). It was developed by Fabrice Bellard and is licensed under the MIT license. It is written in C and is designed to be embeddable in other applications.
 
 QuickJS uses POSIX to implement atomic operations and system time. Although this slightly limits its portability, ESP-IDF, the primary target platform for Jaculus, supports POSIX.
 
-According to ES2020, JavaScript code is evaluated in a *Realm*, which defines the execution environment (e.g., global object and set of built-in objects). QuickJS uses a different term for this concept --- Context, which I have adopted for Jaculus and will be used throughout the rest of this thesis.
+According to ES2020, JavaScript code is evaluated in a *Realm*, which defines the execution environment (e.g., global object and set of built-in objects). QuickJS uses a different term for this concept --- *Context*, which I have adopted for Jaculus and which will be used throughout the rest of this thesis.
 
 
 \shorthandon{'}

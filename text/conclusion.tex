@@ -17,62 +17,58 @@
 
 Several requirements were outlined in the introduction. This section evaluates the solution based on those requirements.
 
-Compared to native programs, the solution significantly reduces the length of the development cycle. While the development cycle of native programs can, in worse cases, take several minutes, with Jaculus, it is reduced to several seconds. The build time shows the largest improvement, as no build process is needed for JavaScript programs, and the build time of TypeScript programs is mostly negligible in comparison with native programs. Deployment is also faster, as only the application code is uploaded to the device, in contrast to native programs, where the entire firmware partition is usually overwritten.
+Compared to native programs, the solution significantly reduces the development cycle length. While the development cycle of native programs can, in worse cases, take several minutes, with Jaculus, it is reduced to several seconds. The build time shows the most considerable improvement, as no build process is needed for JavaScript programs, and the build time of TypeScript programs is mostly negligible compared to native programs. Deployment is also faster, as only the application code needs to be uploaded to the device, unlike native programs, where the entire firmware partition is often overwritten.
 
-The shortened development cycle naturally comes at a price; that being the performance of JavaScript as an interpreted language. However, the performance is still sufficient for running most application logic, and if a performance-sensitive part of the application is identified, it can be reimplemented in C++ and compiled into a native module.
+The shortened development cycle naturally comes at a price, that being the performance of JavaScript as an interpreted language. However, the performance is still sufficient for running most application logic. If a performance-sensitive part of the application is identified, it can be reimplemented in C++ and compiled into a native module.
 
 \section{Comparison with other solutions}
 
-There are already existing solutions to programming microcontrollers using JavaScript and while it would be nice to have a detailed comparison of at least some of them, it would expand the scope of this thesis too much. However, a brief comparison of Jaculus with other solutions is provided in this section. These solutions were chosen based on their popularity:
+There are already existing solutions to programming microcontrollers using JavaScript. While it would be nice to have a detailed comparison of at least some of them, it would overextend the scope of this thesis. However, a brief comparison of Jaculus with other solutions is provided in this section. These solutions were chosen based on their popularity:
 
 - CircuitPython (fork of MicroPython)
 - NodeMCU (Lua)
 - Espruino (JavaScript)
 - Moddable SDK (JavaScript)
 
-A common point of all of these solutions is their much larger feature set compared to Jaculus. They have not only much larger hardware and library support but also larger ecosystems and communities. Espruino and CircuitPython provide very convenient development environments.
+A common point of these solutions is their much larger feature set compared to Jaculus. They have not only much larger hardware and library support but also larger ecosystems and communities. Espruino and CircuitPython provide very convenient development environments.
 
-What sets Jaculus aside from the other solutions is its much higher-level abstraction around different JavaScript concepts. This allows for much easier wrapping of existing libraries and other code to JavaScript modules, meaning that while the hardware support of Jaculus is currently low, adding more features to the runtime is a quick and simple task.
+What sets Jaculus aside from the other solutions is its much higher-level abstraction around different JavaScript concepts. This allows for much easier wrapping of existing libraries and other code to JavaScript modules, meaning that while the hardware support of Jaculus is currently low, adding more features to the runtime is a quick and straightforward task.
 
 \subsection{Non-JavaScript solutions}
 
-Comparing different languages, and especially their performance, is a notoriously difficult task, as each language has its own strengths and weaknesses. The comparison is therefore focused on the usability of the used languages.
+Comparing different languages, especially their performance, is a notoriously difficult task, as each language has its own strengths and weaknesses. Therefore, the comparison focuses on the usability of the used languages.
 
-MicroPython and CircuitPython are implementations of Python 3. They are very popular in the maker community and have a large ecosystem of libraries and tools. However, they only support a limited subset of the language, which means that some Python code cannot be run on them, which could be seen as a disadvantage.
+MicroPython and CircuitPython are implementations of Python~3. They are very popular in the maker community and have a large ecosystem of libraries and tools. However, they only support a limited subset of the language, meaning that some Python code cannot be run on them, which could be seen as a disadvantage.
 
-NodeMCU is a Lua interpreter for ESP8266 and ESP32 microcontrollers. On one hand, it is a well-established solution with an existing community. On the other hand, as mentioned in the introduction, Lua by itself is not nearly as popular as other languages, which makes it less attractive for developers.
+NodeMCU is a Lua interpreter for ESP8266 and ESP32 microcontrollers. On the one hand, it is a well-established solution with an existing community. On the other hand, as mentioned in the introduction, Lua is not nearly as popular as the other languages, making it less attractive to new users.
 
 \subsection{JavaScript solutions}
 
-The comparison of Jaculus with the other JavaScript solutions is more straightforward, as they all share the same language. The main difference between them is their performance and the way they are implemented.
+Comparing Jaculus with the other JavaScript solutions is more straightforward, as they all share the same language. Their main difference is their performance and implementation.
 
-Espruino is an open-source JavaScript interpreter for microcontrollers. The biggest problem of Espruino is its low performance, which can be seen in the performance comparison below.
+Espruino is an open-source JavaScript interpreter for microcontrollers. The biggest problem of Espruino is its low performance, which can be seen in the performance comparison below. Espruino also implements only a limited subset of an older version of the ECMAScript standard, meaning some JavaScript code cannot be run on it.
 
-Moddable SDK is another JavaScript runtime for microcontrollers. It is a commercial product, but it is open-source and free for non-commercial use. Instead of interpreting the JavaScript code on the device, Moddable SDK compiles it into bytecode on the host machine, packs necessary native libraries, and builds a full firmware image, which is then uploaded to the device. This approach allows for a smaller runtime footprint but causes a slightly longer development cycle and requires much more complex tooling.
+Moddable SDK is another JavaScript runtime for microcontrollers. It is a commercial product but is open-source and free for non-commercial use. Instead of interpreting the JavaScript code on the device, Moddable SDK compiles it into bytecode on the host machine, packs necessary native libraries, and builds a complete firmware image, which is then uploaded to the device. This approach allows for a smaller runtime footprint but causes a slightly longer development cycle and requires much more complex tooling.
 
-Their performance was compared by running the same benchmarks on the ESP32 microcontroller. Aside from the GPIO benchmark, the benchmarks were taken from the Computer Language Benchmarks Game\footnote{In: Debian Salsa \[online\]. 2018 \[visited on 2023-05-13\]. Available from: \url{https://salsa.debian.org/benchmarksgame-team/archive-alioth-benchmarksgame}} and slightly modified for each platform to fit the provided API. The GPIO benchmark was created specifically for this comparison and measures the time it takes to toggle a GPIO pin *n* times. The results of the comparison are shown in Table \ref{tab:performance}.
+Their performance was compared by running the same benchmarks on the ESP32 microcontroller. Aside from the GPIO benchmark, the benchmarks were taken from the Computer Language Benchmarks Game\footnote{In: Debian Salsa \[online\]. 2018 \[visited on 2023-05-13\]. Available from: \url{https://salsa.debian.org/benchmarksgame-team/archive-alioth-benchmarksgame}} and slightly modified for each platform to fit the provided API. The GPIO benchmark was created for this comparison and measured the time it takes to toggle a GPIO pin *n* times. The results of the comparison are shown in Table \ref{tab:performance}.
 
-The benchmarks show that in computational tasks, Jaculus is significantly faster than Espruino and Moddable SDK. Moddable SDK is faster in the binary-trees benchmark, which is targeted at the creation of new objects and memory allocation. Moddable SDK is also faster in the GPIO benchmark, which may be caused by the higher-level abstraction used to implement the native module in Jaculus.
+The benchmarks show that Jaculus is significantly faster in computational tasks than Espruino and Moddable SDK. Moddable SDK is faster in the binary-trees benchmark, which is targeted at the creation of new objects and memory allocation. Moddable SDK is also faster in the GPIO benchmark, which may be caused by poorly optimized abstraction used to implement the native module in Jaculus.
 
-The low performance of Espruino can be attributed to the fact, that internally, Espruino parses the JavaScript code into an abstract syntax tree, which is then directly interpreted, in contrast to the approach used by Jaculus and Moddable SDK, where the code is first compiled into bytecode and then interpreted.
+The low performance of Espruino can be attributed to the fact that internally, Espruino parses the JavaScript code into an abstract syntax tree, which is then directly interpreted, in contrast to the approach used by Jaculus and Moddable SDK, where the code is first compiled into bytecode and then interpreted.
 
 
 \begin{table}[ht]
-  \raggedright
-  The results are run times in milliseconds, lower is better.
-
   \centering
 
-  | Test                  | Jaculus     | Espruino    | XS          |
-  |-----------------------|------------:|------------:|------------:|
-  | n-body (n=50)         | 36.2        | 4333.1      | 54.4        |
-  | fannkuch-redux (n=6)  | 35.6        | 12335.3     | 75.0        |
-  | spectral-norm (n=10)  | 48.9        | 10749.9     | 91.4        |
-  | binary-trees (n=3)    | 279.3       | 19930.4     | 187.6       |
-  | GPIO (n=5000)         | 756.1       | 11720.4     | 54.7        |
+  | Test                  | Jaculus     | Espruino    | Moddable SDK |
+  |-----------------------|------------:|------------:|-------------:|
+  | n-body (n=50)         | 36.2        | 4333.1      | 54.4         |
+  | fannkuch-redux (n=6)  | 35.6        | 12335.3     | 75.0         |
+  | spectral-norm (n=10)  | 48.9        | 10749.9     | 91.4         |
+  | binary-trees (n=3)    | 279.3       | 19930.4     | 187.6        |
+  | GPIO (n=5000)         | 756.1       | 11720.4     | 54.7         |
 
-
-  \caption{Performance comparison of Jaculus with other JavaScript solutions}
+  \caption[Performance comparison of Jaculus with other JavaScript solutions]{Performance comparison of Jaculus with other JavaScript solutions. The results are run times in milliseconds, lower is better.}
 
   \label{tab:performance}
 \end{table}
@@ -86,7 +82,7 @@ The solution consists of Jaculus-dcore library and Jaculus-tool command-line app
 
 Two standalone libraries were also created as part of the solution: Jaculus-link and Jaculus-machine. The former is a communication library, and the latter is an implementation of the JavaScript runtime with easy extensibility. Both libraries are well documented and tested, and can be used independently of the rest of the solution.
 
-Although the solution is in usable state, there are still some features missing and some bugs present. Most importantly, more MFeatures need to be implemented for Jaculus to be a viable alternative to other existing solutions. Further improvements can also be made to the upload protocol, which is currently very simple and could have better performance.
+Although the solution is in a usable state and, in terms of performance, can compete with other existing solutions, many features are still missing, and some bugs are present. Most importantly, more MFeatures must be implemented for Jaculus to be a viable alternative to other existing solutions. Further improvements can also be made to the upload protocol, which is currently very simple and could have better performance and reliability.
 
 \shorthandon{'}
 \end{markdown*}
