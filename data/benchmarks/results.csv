@@ -1,4 +1,4 @@
-﻿n-body;Jaculus;Espruino;XS
+﻿n-body;Jaculus;Espruino;Moddable
 ;;;
 1;37.00;4321.38;55.00
 2;36.00;4344.05;55.00
@@ -12,7 +12,7 @@
 10;36.00;4321.81;54.00
 avg;36.20;4333.05;54.40
 ;;;
-fannkuch-redux;Jaculus;Espruino;XS
+fannkuch-redux;Jaculus;Espruino;Moddable
 1;36.00;12325.38;75.00
 2;35.00;12321.64;75.00
 3;35.00;12330.67;75.00
@@ -25,7 +25,7 @@ fannkuch-redux;Jaculus;Espruino;XS
 10;35.00;12350.52;75.00
 avg;35.60;12335.31;75.00
 ;;;
-binary-trees;Jaculus;Espruino;XS
+binary-trees;Jaculus;Espruino;Moddable
 1;276.00;19984.38;187.00
 2;275.00;19931.88;187.00
 3;275.00;19863.15;187.00
@@ -38,7 +38,7 @@ binary-trees;Jaculus;Espruino;XS
 10;290.00;19929.08;188.00
 avg;279.30;19930.36;187.60
 ;;;
-spectral-norm;Jaculus;Espruino;XS
+spectral-norm;Jaculus;Espruino;Moddable
 1;51.00;10746.74;91.00
 2;49.00;10733.43;91.00
 3;48.00;10769.06;91.00
@@ -51,7 +51,7 @@ spectral-norm;Jaculus;Espruino;XS
 10;49.00;10773.39;92.00
 avg;48.90;10749.94;91.40
 ;;;
-GPIO;Jaculus;Espruino;XS
+GPIO;Jaculus;Espruino;Moddable
 1;753.00;11676.72;54.80
 2;718.00;11726.09;54.70
 3;746.00;11743.29;54.70
@@ -65,7 +65,7 @@ GPIO;Jaculus;Espruino;XS
 avg;756.10;11720.39;54.71
 freq;6612.881894;426.6068261;91390.97057
 ;;;
-;Jaculus;Espruino;XS
+;Jaculus;Espruino;Moddable
 n-body;36.20;4333.05;54.40
 fannkuch-redux;35.60;12335.31;75.00
 binary-trees;279.30;19930.36;187.60
