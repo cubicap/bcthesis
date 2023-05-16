@@ -25,10 +25,10 @@ The shortened development cycle naturally comes at a price, that being the perfo
 
 There are already existing solutions to programming microcontrollers using JavaScript. While it would be nice to have a detailed comparison of at least some of them, it would overextend the scope of this thesis. However, a brief comparison of Jaculus with other solutions is provided in this section. These solutions were chosen based on their popularity:
 
-- CircuitPython (fork of MicroPython)
-- NodeMCU (Lua)
-- Espruino (JavaScript)
-- Moddable SDK (JavaScript)
+- CircuitPython\cite{circuitpython} (fork of MicroPython\cite{micropython})
+- NodeMCU\cite{nodemcu} (Lua)
+- Espruino\cite{espruino} (JavaScript)
+- Moddable SDK\cite{moddable} (JavaScript)
 
 A common point of these solutions is their much larger feature set compared to Jaculus. They have not only much larger hardware and library support but also larger ecosystems and communities. Espruino and CircuitPython provide very convenient development environments.
 
@@ -44,13 +44,13 @@ NodeMCU is a Lua interpreter for ESP8266 and ESP32 microcontrollers. On the one 
 
 \subsection{JavaScript solutions}
 
-Comparing Jaculus with the other JavaScript solutions is more straightforward, as they all share the same language. Their main difference is their performance, implementation and tooling.
+Comparing Jaculus with the other JavaScript solutions is more straightforward, as they all share the same language. Their main difference is their performance, implementation, and tooling.
 
 Espruino is an open-source JavaScript interpreter for microcontrollers. The biggest problem of Espruino is its low performance, which can be seen in the performance comparison below. Espruino also implements only a limited subset of an older version of the ECMAScript standard, meaning some JavaScript code cannot be run on it. Espruino also provides a convenient development environment through its Web IDE, which allows for live code editing and debugging and does not require any additional tools to be installed.
 
 Moddable SDK is another JavaScript runtime for microcontrollers. It is a commercial product but is open-source and free for non-commercial use. Instead of interpreting the JavaScript code on the device, Moddable SDK compiles it into bytecode on the host machine, packs necessary native libraries, and builds a complete firmware image, which is then uploaded to the device. This approach allows for a smaller runtime footprint but causes a slightly longer development cycle and requires much more complex development tools.
 
-The performance of these solutions was compared by running the same benchmarks on the ESP32 microcontroller. Aside from the GPIO benchmark, the benchmarks were taken from the Computer Language Benchmarks Game\footnote{In: Debian Salsa \[online\]. 2018 \[visited on 2023-05-13\]. Available from: \url{https://salsa.debian.org/benchmarksgame-team/archive-alioth-benchmarksgame}} and slightly modified for each platform to fit the provided API. The GPIO benchmark was created for this comparison and measured the time it takes to toggle a GPIO pin *n* times. The code of the GPIO benchmark for Espruino is shown below. The results of the comparison are shown in Table \ref{tab:performance}.
+The performance of these solutions was compared by running the same benchmarks on the ESP32 microcontroller. Aside from the GPIO benchmark, the benchmarks were taken from the Computer Language Benchmarks Game\cite{bench-game} and slightly modified for each platform to fit the provided API. The GPIO benchmark was created for this comparison and measured the time it takes to toggle a GPIO pin *n* times. The code of the GPIO benchmark for Espruino is shown below. The results of the comparison are shown in Table \ref{tab:performance}.
 
 ```js
 var pin = 5;
