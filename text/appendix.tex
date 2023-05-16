@@ -1,0 +1,42 @@
+\shorthandoff{'}
+\begin{markdown*}{%
+  hybrid,
+  definitionLists,
+  footnotes,
+  inlineFootnotes,
+  hashEnumerators,
+  fencedCode,
+  citations,
+  citationNbsps,
+  pipeTables,
+  tableCaptions,
+}
+
+\appendix
+
+\chapter{Building Jaculus for ESP32}
+
+The Jaculus-esp32 firmware can be built using the ESP-IDF version 5.0.1 or newer. For the setup of the ESP-IDF, please refer to the official documentation\footnote{In: ESP-IDF Programming Guide \[online\]. \[visited on 2023-05-16\]. Available from: \url{https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/}}.
+
+The ESP-IDF can be used from the command line. To set up the environment variables for the ESP-IDF, run the corresponding export script in the ESP-IDF directory:
+
+- Linux, macOS: `source export.sh`
+- Windows: `export.bat` or `export.ps1`
+
+Select the target platform by renaming the corresponding configuration file in the `Jaculus-esp32` directory of the project to `sdkconfig`:
+
+- ESP32: `sdkconfig-esp32`
+- ESP32-S3: `sdkconfig-esp32s3`
+
+To build the firmware, run `idf.py build` in the `Jaculus-esp32` directory. To flash the firmware to the device, run `idf.py flash`.
+
+Note that the build process needs to fetch the Jaculus-dcore, Jaculus-machine, Jaculus-link and QuickJS dependencies from GitHub and requires an internet connection. To install the dependencies manually, copy their source directories to the `Jaculus-esp32/components` directory:
+
+- \texttt{Jaculus-dcore/src} \rightarrow \texttt{components/jaculus-dcore}
+- \texttt{Jaculus-machine/src} \rightarrow \texttt{components/jaculus-machine}
+- \texttt{Jaculus-link/src} \rightarrow \texttt{components/jaculus-link}
+- \texttt{quickjs} \rightarrow \texttt{components/quickjs}
+
+
+\shorthandon{'}
+\end{markdown*}

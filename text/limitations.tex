@@ -29,12 +29,12 @@ This is a limitation of QuickJS. Although QuickJS does have a mechanism for repo
 
 ``` js
 new Promise((resolve, reject) => {
-    console.log("promise");
-    reject(null);
+  console.log("promise");
+  reject(null);
 }).then(() => {
-    console.log("ok");
+  console.log("ok");
 }).catch(() => {
-    console.log("error");
+  console.log("error");
 });
 
 console.log("after");

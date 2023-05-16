@@ -100,13 +100,13 @@ Default conversions for several built-in types are provided, such as `int`, `dou
 ```cpp
 template<>
 struct ConvTraits<bool> {
-    static bool from(ContextRef ctx, ValueWeak val) {
-        return JS_ToBool(ctx, val.getVal());
-    }
+  static bool from(ContextRef ctx, ValueWeak val) {
+    return JS_ToBool(ctx, val.getVal());
+  }
 
-    static Value to(ContextRef ctx, bool val) {
-        return Value(ctx, JS_NewBool(ctx, val));
-    }
+  static Value to(ContextRef ctx, bool val) {
+    return Value(ctx, JS_NewBool(ctx, val));
+  }
 };
 ```
 
@@ -154,11 +154,11 @@ FunctionFactory ff(ctx);
 Function add = ff.newFunction([](int a, int b) { return a + b; });
 
 Function sum = ff.newFunctionVariadic([](std::vector<ValueWeak> args) {
-    int sum = 0;
-    for (auto& arg : args) {
-        sum += arg.to<int>();
-    }
-    return sum;
+  int sum = 0;
+  for (auto& arg : args) {
+    sum += arg.to<int>();
+  }
+  return sum;
 });
 ```
 
@@ -202,11 +202,11 @@ The central part of the library is the `Machine` type, which represents a JavaSc
 
 ```cpp
 using Machine = ComposeMachine<
-    ModuleLoaderFeature,
-    FilesystemFeature,
-    StdioFeature,
-    BasicStreamFeature,
-    MachineBase
+  ModuleLoaderFeature,
+  FilesystemFeature,
+  StdioFeature,
+  BasicStreamFeature,
+  MachineBase
 >;
 ```
 
@@ -220,8 +220,8 @@ Machine machine;
 // Configure the machine
 machine.setWatchdogTimeout(1000);
 machine.setWatchdogHandler([](Machine& machine) {
-    std::cerr << "Watchdog timeout!" << std::endl;
-    return true;
+  std::cerr << "Watchdog timeout!" << std::endl;
+  return true;
 });
 machine.initialize();
 
@@ -285,11 +285,11 @@ The following code shows an example of a Feature that adds a `foo` property to t
 ```cpp
 template<typename Next>
 class MyFeature : public Next {
-    void initialize() {
-        ContextRef ctx = this->context();
-        Object global = ctx.getGlobalObject();
-        global.defineProperty("foo", Value::from(ctx, 42));
-    }
+  void initialize() {
+    ContextRef ctx = this->context();
+    Object global = ctx.getGlobalObject();
+    global.defineProperty("foo", Value::from(ctx, 42));
+  }
 };
 ```
 
@@ -298,12 +298,12 @@ The user might also want to define a JavaScript module. This can be done using t
 ```cpp
 template<typename Next>
 class MyFeature : public Next {
-    void initialize() {
-        ContextRef ctx = this->context();
+  void initialize() {
+    ContextRef ctx = this->context();
 
-        Module& module = this->newModule("myModule");
-        module.addExport("foo", Value::from(ctx, 42));
-    }
+    Module& module = this->newModule("myModule");
+    module.addExport("foo", Value::from(ctx, 42));
+  }
 };
 ```
 

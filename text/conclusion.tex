@@ -56,8 +56,8 @@ The performance of these solutions was compared by running the same benchmarks o
 var pin = 5;
 var start = Date.now();
 for (var i = 0; i < n; i++) {
-    digitalWrite(pin, 1);
-    digitalWrite(pin, 0);
+  digitalWrite(pin, 1);
+  digitalWrite(pin, 0);
 }
 var end = Date.now();
 console.log("Time: " + (end - start));
