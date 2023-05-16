@@ -18,7 +18,7 @@ This chapter describes the limitations of the created components and the Jaculus
 
 \section{Only one Context per Machine instance}
 
-From the beginning, the design of Jaculus-machine was to have only one Context per machine. It seemed not to be a limiting factor and simplified implementation. However, later in development, it started to show it was a wrong decision and proves to be a limiting factor in some cases.
+From the beginning, the design of Jaculus-machine was to have only one Context per Machine instance. It seemed not to be a limiting factor and simplified implementation. However, later in development, it started to show it was a wrong decision and proves to be a limiting factor in some cases.
 
 For example, in REPL, all exceptions should be caught and reported to standard output. When starting REPL from a JavaScript program, the main program should crash on unhandled exceptions, whereas the REPL should not. Implementation of this would require REPL and the main program to be executed in separate contexts to distinguish between their behavior regarding exception handling.
 

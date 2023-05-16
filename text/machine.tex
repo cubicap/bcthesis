@@ -14,14 +14,11 @@
 
 \chapter{Jaculus-machine} \label{chap:machine}
 
-Jaculus-machine is a standalone, embeddable, C++ centric JavaScript runtime. It uses the QuickJS JavaScript engine at its core and provides a set of C++ classes that wrap the QuickJS API. The main goal of Jaculus-machine is to provide a simple and easy-to-use API for adding features to the runtime.
+Jaculus-machine is a standalone, embeddable, C++ centric JavaScript runtime. It uses the QuickJS JavaScript engine at its core and provides a C++ interface, with the aim of providing a simple and easy-to-use API for adding features to the runtime.
 
 A large portion of Jaculus-machine is a set of wrapper classes around the QuickJS API. The classes provide RAII semantics and an easy-to-use API for routine use cases.
 
-Jaculus-machine uses two core concepts, which will be referred to as *Machine* and *MFeature* throughout the rest of this thesis.
-
-  - Machine --- an instance of the runtime complete with all the selected MFeatures
-  - MFeature --- a component that can be used as a part of a Machine and which provides functionality to the runtime or to other MFeatures
+Jaculus-machine uses two core concepts, which are referred to as *Machine* and *MFeature* in the code and the rest of this thesis. A *Machine* is an instance of the runtime complete with all the selected MFeatures. An *MFeature* is a module that can be used as a part of a Machine and which provides functionality to the runtime or to other MFeatures.
 
 The modular design of Jaculus-machine allows for easy extensibility and customization of the runtime. The user can select which MFeatures should be included in the runtime and also create new MFeatures with a low effort. It also allows for easier portability of existing MFeatures to other platforms.
 
@@ -33,12 +30,27 @@ The main entry point of the library is a Machine instance. After a Machine is cr
 
 A Machine is defined using templated stack inheritance from the `MachineBase` class and selected MFeature classes. The `MachineBase` class provides the core functionality of the runtime, and the MFeature classes implement additional functionality, such as an event loop and filesystem access.
 
+Stack inheritance is a technique where a class is defined as a template parametrized by another class, which it then inherits from. The inheritance is resolved at compile time, and each class in the stack can access the members of the classes lower in the stack. An example of stack inheritance can be seen in a code snippet below.
+
+```cpp
+class A { ... };
+
+template<class Next>
+class B : public Next { ... };
+
+template<class Next>
+class C : public Next { ... };
+
+using Stack = C<B<A>>;
+```
+
 The stack design of the Machine allows interfacing with different MFeatures in C++ directly without any middleware. Lower-level MFeatures are located lower in the stack and implement platform-specific functionality, while higher-level MFeatures are located higher in the stack and can use the abstraction provided by the lower-level MFeatures. This allows for easy portability of higher-level MFeatures to other platforms.
 
+In other words, instead of the MFeatures being initialized in relative isolation, as in many other runtimes, they are initialized as a part of a Machine, strictly in the context of lower-level MFeatures.
 
 \section{JavaScript concepts in C++}
 
-Because many JavaScript concepts do not have a direct equivalent in C++, Jaculus-machine provides a set of classes that wrap their representation from the QuickJS API. The classes provide RAII semantics and aim to be as easy to use as possible.
+Because many JavaScript concepts do not have a direct equivalent in C++ or have different semantics, Jaculus-machine provides a set of classes that wrap their representation from the QuickJS API. The classes provide RAII semantics and aim to be as easy to use as possible.
 
 \subsection{Values}
 
@@ -83,7 +95,20 @@ If the wrapped value cannot be converted to the requested type, a `jac::Exceptio
 
 In many cases, the library can perform automatic type conversions between JavaScript values and C++ types. Among others, automatic conversions happen in getters, setters, and function calls. This allows for wrapping existing functions without having to write conversion code manually.
 
-Default conversions for several built-in types are provided, such as `int`, `double`, `std::string`, and `std::vector`. The library also provides a mechanism for defining custom conversions for user-defined (and not-yet-supported built-in) types.
+Default conversions for several built-in types are provided, such as `int`, `double`, `std::string`, and `std::vector`. The library also provides a mechanism for defining custom conversions for user-defined (and not-yet-supported built-in) types. To define a custom conversion, the user must implement a template specialization of the `ConvTraits` structure for the type. The following code shows a specialization for the `bool` type, which is included with the library:
+
+```cpp
+template<>
+struct ConvTraits<bool> {
+    static bool from(ContextRef ctx, ValueWeak val) {
+        return JS_ToBool(ctx, val.getVal());
+    }
+
+    static Value to(ContextRef ctx, bool val) {
+        return Value(ctx, JS_NewBool(ctx, val));
+    }
+};
+```
 
 \subsection{Exceptions}
 
@@ -91,11 +116,11 @@ A portion of the Jaculus-machine library consists of wrappers that allow calling
 
 Similarly, when a JavaScript function is called from C++, and an exception is thrown in the runtime, it is caught by the wrapper, converted to a C++ exception of type `jac::Exception`, and propagated to the C++ code.
 
-Different types of C++ exceptions are converted to different types of JavaScript exceptions:
+Different types of C++ exceptions are converted to JavaScript exceptions as follows:
 
-  - `jac::Exception` --- the exception is converted to a specified `Error` type, or to the wrapped value if `type == Type::Any`
-  - `std::exception` --- the exception is converted to an `InternalError` object with the message `e.what()`
-  - any other exception --- the exception is converted to an `InternalError` object with the message "unknown exception"
+  - `jac::Exception` --- a specified `Error` type, or the wrapped value if `type == Type::Any`
+  - `std::exception` --- an `InternalError` object with the message `e.what()`
+  - any other exception --- an `InternalError` object with the message "unknown exception"
 
 To create an `Exception` that will be converted to JavaScript as a specified `Error` type, the `Exception::create` method can be used:
 
@@ -114,11 +139,9 @@ Exception exception = value.to<Exception>();
 
 The library provides an interface for defining JavaScript functions by wrapping most existing callable C++ objects. This interface is presented in the form of `FunctionFactory` class.
 
-Because variadic functions in C++ are processed at build time, they can not be universally wrapped to create their JavaScript counterparts. For this reason, `FunctionFactory` lets the user define a function with an argument of type `std::vector<ValueWrapper>`. When this function is called from JavaScript, the vector will contain all arguments passed to the function.
-
 To wrap a function, the user can use the `newFunction` and `newFunctionThis`. All arguments that are passed to the function call will be converted to the types of the function parameters. If the number of arguments does not match or if the values cannot be converted to the required types, a `TypeError` will be thrown.
 
-The methods `newFunctionVariadic` and `newFunctionThisVariadic` can be used to create variadic functions --- all arguments that are passed to the function call will be contained in a single `std::vector<ValueWeak>`.
+Because variadic functions in C++ are processed at build time, they can not be universally wrapped to create their JavaScript counterparts. For this reason, `FunctionFactory` lets the user define a function with an argument of type `std::vector<ValueWrapper>`. When this function is called from JavaScript, the vector will contain all arguments passed to the function. These function can be created using the `newFunctionVariadic` and `newFunctionThisVariadic` methods.
 
 The methods `newFunctionThis` and `newFunctionThisVariadic` additionally give access to the `this` value of the function (for example, when the function is called as a method of an object).
 
@@ -142,21 +165,19 @@ Function sum = ff.newFunctionVariadic([](std::vector<ValueWeak> args) {
 
 \section{Features}
 
-Jaculus-machine mainly consists of wrappers around QuickJS API. The wrappers provide RAII semantics and an easy-to-use API for routine use cases.
-
-The library provides a minimum set of MFeatures that are required for the runtime to function correctly or are helpful for development and debugging. Instead, the library aims to provide functionality, which makes the creation of new MFeatures as easy as possible.
+Jaculus-machine mainly consists of wrappers around QuickJS API and provides only a minimum set of MFeatures that are required for the runtime to function correctly or are helpful for development and debugging. Instead, the library aims to provide functionality, which makes the creation of new MFeatures as easy as possible.
 
 \subsection{Built-in MFeatures}
 
 The following MFeatures are included with the library (their class names are suffixed with "Feature" in the library):
 
-  - EventQueue -- an asynchronous event queue that can be used to schedule events to be executed in the event loop; the events can be scheduled from any thread
-  - EventLoop -- an event loop that executes events from an event queue in the main thread
-  - Filesystem -- an abstraction over the filesystem that provides access to files and directories
-  - ModuleLoader -- an implementation of module loader for loading modules from the filesystem (using the `import` statement in JavaScript) and evaluating JavaScript files (using the `evalFile` method in C++)
-  - BasicStream -- an implementation of simple readable and writable stream types
-  - Stdio -- a feature adding `stdin`, `stdout`, and `stderr` streams to the Machine and `console` interface only to the runtime
-  - Timers -- typical JavaScript timers and a sleep function
+  - EventQueue --- an event queue that can be used to schedule events to be executed in the event loop
+  - EventLoop --- an event loop that executes events from an event queue in the main thread
+  - Filesystem --- an abstraction over the filesystem that provides access to files and directories
+  - ModuleLoader --- an implementation of module loader for importing modules from the filesystem (using the `import` statement in JavaScript) and evaluating JavaScript files (using the `evalFile` method in C++)
+  - BasicStream --- an implementation of simple readable and writable stream types
+  - Stdio --- a feature adding `stdin`, `stdout`, and `stderr` streams to the Machine and `console` interface to the JavaScript side
+  - Timers --- typical JavaScript timers and a sleep function
 
 \subsection{Default event loop}
 
@@ -164,7 +185,7 @@ Default event loop implementation is split into two separate MFeatures. One impl
 
 \subsection{Watchdog}
 
-The `MachineBase` class provides a watchdog timer that can be used to detect infinite loops in the runtime. The watchdog can be configured using the `setWatchdogTimeout` method. By setting the timeout to 0, the watchdog can be disabled. It is disabled by default.
+The `MachineBase` class implements a watchdog timer that can be used to detect infinite loops in the runtime. The watchdog can be configured using the `setWatchdogTimeout` method. By setting the timeout to 0, the watchdog can be disabled, which is the default state.
 
 By default, the watchdog will interrupt the runtime on timeout. This behavior can be changed by setting the watchdog handler using the `setWatchdogHandler` method. Instead of interrupting, the handler will be called, and depending on its return value, the runtime will either be interrupted or continue running.
 
@@ -213,7 +234,7 @@ machine.evalFile("main.js");
 
 As described in Section \ref{sub:class-wrapping}, the library provides a mechanism for creating JavaScript classes, which can be backed by C++ objects.
 
-To create a class, the user must first define a `ProtoBuilder` structure. The `ProtoBuilder` describes the class's behavior and properties through its static interface. Its features are specified by inheriting from the structures in the `ProtoBuilder` namespace and overriding their **static** interfaces. These structs contain a default implementation of their interface and some convenience functions for describing the class. The following code shows an example of a `ProtoBuilder`:
+To create a class, the user must first define a `ProtoBuilder` structure. The `ProtoBuilder` describes the class's behavior and properties through its static interface. Its features are specified by inheriting from the structures in the `ProtoBuilder` namespace and overriding their static interfaces. These structs contain a default implementation of their interface and some convenience functions for describing the class. The following code shows an example of a `ProtoBuilder`:
 
 ```cpp
 struct MyBuilder : public ProtoBuilder::Opaque<MyClass>, public ProtoBuilder::Properties {
@@ -229,21 +250,19 @@ struct MyBuilder : public ProtoBuilder::Opaque<MyClass>, public ProtoBuilder::Pr
 };
 ```
 
-The `Class` template can be instantiated with the `ProtoBuilder` structure to create a class definition, and a name can be assigned using the `init` method. The `init` method can be called repeatedly without any effect if called with the same name; otherwise, an exception will be thrown.
+The `Class` template can be instantiated with the `ProtoBuilder` structure to create a class definition, and a name can be assigned using the `init` method. The `init` method can be called repeatedly without any effect if called with the same name; otherwise, an exception will be thrown. To use the class in a given Context, the class must be initialized in the Context by calling the `initContext` method:
 
 ```cpp
+// Initialize the class
 using MyClassJs = Class<MyBuilder>;
 MyClassJs::init("MyClass");
-```
 
-To use the class in a given Context, the class must be initialized in the Context by calling the `initContext` method:
-
-```cpp
+// Initialize the class in a context
 ContextRef ctx = ...;
 MyClassJs::initContext(ctx);
 ```
 
-After doing the above steps, the user can now get the class constructor and prototype and instantiate the class:
+After doing the above steps, the class constructor and prototype can be retrieved and the class can be instantiated:
 
 ```cpp
 Value constructor = MyClassJs::getConstructor(ctx);
@@ -256,7 +275,7 @@ Value obj = constructor.to<Function>().callConstructor();
 
 An MFeature is defined as a template class. To allow building the inheritance chain of a Machine, the class must set the class `Next` presented in its last template parameter as its base class. To add functionality to the machine, the class may:
 
-  - present a public C++ interface to MFeatures higher in the inheritance chain or to the user of the Machine
+  - present a public C++ interface to MFeatures higher in the inheritance chain or to the user of the Machine, and
   - use the `initialize` method to add functionality to the JavaScript runtime
 
 In the MFeature constructor, the user must not interact with the JavaScript runtime in any way, as it is not initialized yet. Initialization of the MFeature involving the JavaScript runtime should be done in the `initialize` method.
