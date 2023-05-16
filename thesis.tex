@@ -3,15 +3,15 @@
   oneside,
   nosansbold,
   nocolorbold,
-  lof,
-  lot
+  nolof,
+  nolot
 ]{fithesis4}
 
 \usepackage[resetfonts]{cmap}
 \usepackage[T1]{fontenc}
 \usepackage[
   main=english,
-  english, german, czech, slovak
+  english, czech, slovak
 ]{babel}
 
 \usepackage{paratype}
@@ -47,7 +47,9 @@
 \usepackage{paralist}
 \usepackage{url}
 \usepackage{markdown}
-% \def\markdownRendererCodeSpan#1{\colorbox{gray!10}{#1}}
+
+\usepackage[htt]{hyphenat}
+\def\markdownRendererCodeSpan#1{\texttt{#1}}
 \usepackage{listings}
 \lstset{
   basicstyle       = \footnotesize\ttfamily,

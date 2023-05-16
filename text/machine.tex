@@ -23,42 +23,30 @@ Jaculus-machine uses two core concepts, which will be referred to as *Machine* a
   - Machine --- an instance of the runtime complete with all the selected MFeatures
   - MFeature --- a component that can be used as a part of a Machine and which provides functionality to the runtime or to other MFeatures
 
-((TODO: proc modularni))
+The modular design of Jaculus-machine allows for easy extensibility and customization of the runtime. The user can select which MFeatures should be included in the runtime and also create new MFeatures with a low effort. It also allows for easier portability of existing MFeatures to other platforms.
 
-\section{Design}
+All public functionality of the library is contained in the `jac` namespace. QuickJS exports its symbols in the global namespace, and their names are usually prefixed with `JS`. The user should not interact with QuickJS directly for regular use, as the library provides wrappers for most of its functionality.
 
-The main entry point of the library is a Machine object. After a Machine is created and initialized, it can be used to interact with the JavaScript runtime and execute JavaScript code.
+\section{Machine and MFeatures}
 
-((TODO: why wrapper, more about wrapper))
+The main entry point of the library is a Machine instance. After a Machine is created and initialized, it can be used to interact with the JavaScript runtime and execute JavaScript code.
 
-\subsection{Machine and MFeatures}
-
-A Machine is defined using templated stack inheritance from `MachineBase` and selected MFeature classes. The `MachineBase` class provides the core functionality of the runtime, and the MFeature classes implement additional functionality, such as an event loop and filesystem access.
+A Machine is defined using templated stack inheritance from the `MachineBase` class and selected MFeature classes. The `MachineBase` class provides the core functionality of the runtime, and the MFeature classes implement additional functionality, such as an event loop and filesystem access.
 
 The stack design of the Machine allows interfacing with different MFeatures in C++ directly without any middleware. Lower-level MFeatures are located lower in the stack and implement platform-specific functionality, while higher-level MFeatures are located higher in the stack and can use the abstraction provided by the lower-level MFeatures. This allows for easy portability of higher-level MFeatures to other platforms.
 
-\subsection{Exceptions}
 
-A portion of the Jaculus-machine library consists of wrappers that allow calling C++ functions from JavaScript code. When an exception is thrown in the wrapped C++ code, it is caught by the wrapper, converted to a JavaScript exception, and propagated to the runtime. The library allows the user to specify the JavaScript `Error` type or any other JavaScript value that should be thrown.
+\section{JavaScript concepts in C++}
 
-Similarly, when a JavaScript function is called from C++, and an exception is thrown in the runtime, it is caught by its wrapper, converted to a C++ exception of type `jac::Exception`, and propagated to the C++ code.
+Because many JavaScript concepts do not have a direct equivalent in C++, Jaculus-machine provides a set of classes that wrap their representation from the QuickJS API. The classes provide RAII semantics and aim to be as easy to use as possible.
 
+\subsection{Values}
 
-\section{Features}
-
-Jaculus-machine mainly consists of wrappers around QuickJS API. The wrappers provide RAII semantics and an easy-to-use API for routine use cases.
-
-The library provides a minimum set of MFeatures that are required for the runtime to function correctly or are helpful for development and debugging. Instead, the library aims to provide functionality, which makes the creation of new MFeatures as easy as possible.
-
-
-\subsection{Value wrapping}
-
-QuickJS uses reference counting for memory management, and the user is responsible for decreasing the reference count of JavaScript values that are no longer needed. Jaculus-machine provides a set of classes that wrap JavaScript values and provide RAII semantics for them. The classes also provide a simple API for converting to and from C++ types.
+JavaScript values can be either primitive values (e.g., numbers) or objects (e.g., arrays). Primitive values are stored in stack memory, while objects are stored in the heap. QuickJS uses reference counting for memory management, and the user is responsible for decreasing the reference count of JavaScript values that are no longer needed. Jaculus-machine provides a set of classes that wrap JavaScript values and provide RAII semantics for them. The classes also provide a simple API for converting to and from C++ types.
 
 The base class for JavaScript value wrapper is `ValueWrapper` and provides a general API for working with JavaScript values. More specific wrapper classes are derived from `ValueWrapper` and provide additional functionality, such as `ObjectWrapper` and `FunctionWrapper`.
 
-The wrapped value can be either a value (e.g., a number) or a reference (e.g., an object).
-`ValueWrapper` has a template parameter `managed` that defines whether the wrapper takes ownership of the underlying JavaScript value. This pattern is assumed from QuickJS, which sometimes does not give ownership of the value to the user to reduce the number of changes in its reference count. If the value is a reference, depending on the value of `managed`, the wrapper will either be a strong or a weak reference to the value. For convenience, the library provides two type aliases for all built-in wrappers, which are usually used instead and follow the following pattern:
+`ValueWrapper` has a template parameter `managed` that specifies whether the wrapper takes ownership of the underlying JavaScript value. This pattern is assumed from QuickJS, which sometimes does not give ownership of the value to the user to reduce the number of changes in its reference count. If the value is a reference, depending on the value of `managed`, the wrapper will either be a strong or a weak reference to the value. For convenience, the library provides two type aliases for all built-in wrappers, which are usually used instead and follow the following pattern:
 
 ```cpp
 // value/strong reference
@@ -67,80 +55,7 @@ using Value = ValueWrapper<true>;
 using ValueWeak = ValueWrapper<false>;
 ```
 
-\subsection{Type conversions}
-
-In many cases, the library can perform automatic type conversions between JavaScript values and C++ types. Among others, automatic conversions happen in getters, setters, and function calls. This allows for wrapping existing functions without having to write conversion code manually.
-
-Default conversions for several built-in types are provided, such as `int`, `double`, `std::string`, and `std::vector`. The library also provides a mechanism for defining custom conversions for user-defined (and not-yet-supported built-in) types.
-
-\subsection{Function wrapping} \label{sub:func-wrapping}
-
-The library provides an interface for defining JavaScript functions by wrapping most existing callable C++ objects. This interface is presented in the form of `FunctionFactory` class.
-
-Because variadic functions in C++ are processed at build time, they can not be universally wrapped to create their JavaScript counterparts. For this reason, `FunctionFactory` lets the user define a function with an argument of type `std::vector<ValueWrapper>`. When this function is called from JavaScript, the vector will contain all arguments passed to the function.
-
-The created wrappers then automatically perform argument and return type conversions and convert any exceptions thrown by the wrapped function to a JavaScript exception.
-
-\subsection{Class wrapping} \label{sub:class-wrapping}
-
-((TODO: example))
-Sometimes, it is desirable to create a JavaScript object backed by a C++ object. This can be done using the class `Class`. The class is templated by a `ProtoBuilder` structure, which defines how the JavaScript object prototype should be constructed and how the optional opaque data should be managed. The class `Class` can then be used to initialize the class in a given Context, construct the JavaScript object or obtain its constructor.
-
-\subsection{Built-in MFeatures}
-
-The following MFeatures are included with the library (their class names are suffixed with "Feature" in the library):
-
-  - EventQueue -- an asynchronous event queue that can be used to schedule events to be executed in the event loop; the events can be scheduled from any thread
-  - EventLoop -- an event loop that executes events from an event queue in the main thread
-  - Filesystem -- an abstraction over the filesystem that provides access to files and directories
-  - ModuleLoader -- an implementation of module loader for loading modules from the filesystem (using the `import` statement in JavaScript) and evaluating JavaScript files (using the `evalFile` method in C++)
-  - BasicStream -- an implementation of simple readable and writable stream types
-  - Stdio -- a feature adding `stdin`, `stdout`, and `stderr` streams to the Machine and `console` interface only to the runtime
-  - Timers -- typical JavaScript timers and a sleep function
-
-\subsection{Watchdog}
-
-The `MachineBase` class provides a watchdog timer that can be used to detect infinite loops in the runtime. The watchdog can be configured using the `setWatchdogTimeout` method. By setting the timeout to 0, the watchdog can be disabled. It is disabled by default.
-
-By default, the watchdog will interrupt the runtime on timeout. This behavior can be changed by setting the watchdog handler using the `setWatchdogHandler` method. Instead of interrupting, the handler will be called, and depending on its return value, the runtime will either be interrupted or continue running.
-
-
-\section{Implementation}
-
-The library is implemented using C++20 and requires POSIX for QuickJS.
-
-All public functionality is contained in the `jac` namespace. QuickJS exports its symbols in the global namespace, and their names are usually prefixed with `JS`. The user should not interact with QuickJS directly for regular use, as the library provides wrappers for most of its functionality.
-
-\subsection{Default event loop}
-
-Default event loop implementation is split into two separate MFeatures. One implements an event queue, and the other implements the event loop. This allows for easier portability, as the event loop itself can be reused on different platforms, while the event queue can be extended to, for example, support scheduling events from interrupts.
-
-
-\section{Usage} \label{sec:machine-usage}
-
-The central part of the library is the `Machine` type, which represents a JavaScript runtime with a set of MFeatures. An example definition of a Machine is shown below:
-
-```cpp
-using Machine = ComposeMachine<
-    ModuleLoaderFeature,
-    FilesystemFeature,
-    StdioFeature,
-    BasicStreamFeature,
-    MachineBase
->;
-```
-
-The `ComposeMachine` class is a helper class that builds the Machine inheritance chain. The MFeatures at the beginning of the argument list will be at the top of the stack, and the MFeatures at the end will be at the bottom. The `MachineBase` class is a base class for all Machines and must be at the end of the list.
-
-\subsection{Adding the library to a project}
-
-((TODO))
-
-The library is configured as a CMake project. It exports a CMake target called `jac-machine` that can be linked to other projects.
-
-\subsection{JavaScript values}
-
-The `ValueWrapper` class represents JavaScript values, which can be obtained either as a result of the execution of JavaScript code or by wrapping a C++ value. New JavaScript values can be created using static methods of the `ValueWrapper` and its subclasses. The following code shows some examples:
+A `ValueWrapper` instance can be obtained either as a result of the execution of JavaScript code or by creating it from C++. New JavaScript values can be created using static methods of the `ValueWrapper` and its subclasses. The following code shows some examples:
 
 ```cpp
 ContextRef ctx = ...;
@@ -152,24 +67,35 @@ Value object = Object::create(ctx);
 Value array = Array::create(ctx);
 ```
 
-The `ValueWrapper` class provides methods for converting the wrapped value to a C++ value:
+The `ValueWrapper` class provides methods for converting the value to a C++ value or a subclass of `ValueWrapper` to access additional functionality. The following code shows some examples:
 
 ```cpp
 Value value = ...;
 
 int number = value.to<int>();
 std::string string = value.to<std::string>();
+Object object = value.to<Object>();
 ```
 
 If the wrapped value cannot be converted to the requested type, a `jac::Exception` will be thrown.
 
-\subsection{JavaScript exceptions}
+\subsection{Type conversions}
 
-Wrapped C++ code can throw exceptions. If that happens, the wrappers will catch the exception, convert it to a JavaScript exception, and throw it to the JavaScript runtime. The following exception types are converted as follows:
+In many cases, the library can perform automatic type conversions between JavaScript values and C++ types. Among others, automatic conversions happen in getters, setters, and function calls. This allows for wrapping existing functions without having to write conversion code manually.
 
-  - `jac::Exception` -- the exception is converted to a specified `Error` type, or to the wrapped value if `type == Type::Any`
-  - `std::exception` -- the exception is converted to an `InternalError` object with the message `e.what()`
-  - any other exception -- the exception is converted to an `InternalError` object with the message "unknown exception"
+Default conversions for several built-in types are provided, such as `int`, `double`, `std::string`, and `std::vector`. The library also provides a mechanism for defining custom conversions for user-defined (and not-yet-supported built-in) types.
+
+\subsection{Exceptions}
+
+A portion of the Jaculus-machine library consists of wrappers that allow calling C++ functions from JavaScript code. When an exception is thrown in the wrapped C++ code, it is caught by the wrapper, converted to a JavaScript exception, and propagated to the runtime. The library allows the user to specify the JavaScript `Error` type or any other JavaScript value that should be thrown.
+
+Similarly, when a JavaScript function is called from C++, and an exception is thrown in the runtime, it is caught by the wrapper, converted to a C++ exception of type `jac::Exception`, and propagated to the C++ code.
+
+Different types of C++ exceptions are converted to different types of JavaScript exceptions:
+
+  - `jac::Exception` --- the exception is converted to a specified `Error` type, or to the wrapped value if `type == Type::Any`
+  - `std::exception` --- the exception is converted to an `InternalError` object with the message `e.what()`
+  - any other exception --- the exception is converted to an `InternalError` object with the message "unknown exception"
 
 To create an `Exception` that will be converted to JavaScript as a specified `Error` type, the `Exception::create` method can be used:
 
@@ -184,9 +110,11 @@ Value value = ...;
 Exception exception = value.to<Exception>();
 ```
 
-\subsection{Wrapping C++ functions}
+\subsection{Functions}
 
-As described in Section \ref{sub:func-wrapping}, the library provides a mechanism for wrapping callable C++ objects into JavaScript functions through the class `FunctionFactory`.
+The library provides an interface for defining JavaScript functions by wrapping most existing callable C++ objects. This interface is presented in the form of `FunctionFactory` class.
+
+Because variadic functions in C++ are processed at build time, they can not be universally wrapped to create their JavaScript counterparts. For this reason, `FunctionFactory` lets the user define a function with an argument of type `std::vector<ValueWrapper>`. When this function is called from JavaScript, the vector will contain all arguments passed to the function.
 
 To wrap a function, the user can use the `newFunction` and `newFunctionThis`. All arguments that are passed to the function call will be converted to the types of the function parameters. If the number of arguments does not match or if the values cannot be converted to the required types, a `TypeError` will be thrown.
 
@@ -211,6 +139,76 @@ Function sum = ff.newFunctionVariadic([](std::vector<ValueWeak> args) {
 });
 ```
 
+
+\section{Features}
+
+Jaculus-machine mainly consists of wrappers around QuickJS API. The wrappers provide RAII semantics and an easy-to-use API for routine use cases.
+
+The library provides a minimum set of MFeatures that are required for the runtime to function correctly or are helpful for development and debugging. Instead, the library aims to provide functionality, which makes the creation of new MFeatures as easy as possible.
+
+\subsection{Built-in MFeatures}
+
+The following MFeatures are included with the library (their class names are suffixed with "Feature" in the library):
+
+  - EventQueue -- an asynchronous event queue that can be used to schedule events to be executed in the event loop; the events can be scheduled from any thread
+  - EventLoop -- an event loop that executes events from an event queue in the main thread
+  - Filesystem -- an abstraction over the filesystem that provides access to files and directories
+  - ModuleLoader -- an implementation of module loader for loading modules from the filesystem (using the `import` statement in JavaScript) and evaluating JavaScript files (using the `evalFile` method in C++)
+  - BasicStream -- an implementation of simple readable and writable stream types
+  - Stdio -- a feature adding `stdin`, `stdout`, and `stderr` streams to the Machine and `console` interface only to the runtime
+  - Timers -- typical JavaScript timers and a sleep function
+
+\subsection{Default event loop}
+
+Default event loop implementation is split into two separate MFeatures. One implements an event queue, and the other implements the event loop. This allows for easier portability, as the event loop itself can be reused on different platforms, while the event queue can be extended to, for example, support scheduling events from interrupts.
+
+\subsection{Watchdog}
+
+The `MachineBase` class provides a watchdog timer that can be used to detect infinite loops in the runtime. The watchdog can be configured using the `setWatchdogTimeout` method. By setting the timeout to 0, the watchdog can be disabled. It is disabled by default.
+
+By default, the watchdog will interrupt the runtime on timeout. This behavior can be changed by setting the watchdog handler using the `setWatchdogHandler` method. Instead of interrupting, the handler will be called, and depending on its return value, the runtime will either be interrupted or continue running.
+
+\subsection{Class wrapping} \label{sub:class-wrapping}
+
+Sometimes, it is desirable to create a JavaScript object backed by a C++ object. This can be done using the class `Class`. The class is templated by a `ProtoBuilder` structure, which defines how the JavaScript object prototype should be constructed and how the optional opaque data should be managed. The class `Class` can then be used to initialize the class in a given Context, construct the JavaScript object or obtain its constructor.
+
+An example use case could be a class that represents a device peripheral. The C++ object could contain a handle to the peripheral, implement functionality for using the peripheral, and use the JavaScript object as a proxy to access these functions from JavaScript code.
+
+
+\section{Usage} \label{sec:machine-usage}
+
+The central part of the library is the `Machine` type, which represents a JavaScript runtime with a set of MFeatures. An example definition of a Machine is shown below:
+
+```cpp
+using Machine = ComposeMachine<
+    ModuleLoaderFeature,
+    FilesystemFeature,
+    StdioFeature,
+    BasicStreamFeature,
+    MachineBase
+>;
+```
+
+The `ComposeMachine` class is a helper class that builds the Machine inheritance chain. The MFeatures at the beginning of the argument list will be at the top of the stack, and the MFeatures at the end will be at the bottom. The `MachineBase` class is a base class for all Machines and must be at the end of the list.
+
+To use the machine, an instance of the `Machine` type must be created. Then the machine can be configured and after calling the `initialize` method, it can be used. The following code shows an example of creating and initializing a Machine:
+
+```cpp
+Machine machine;
+
+// Configure the machine
+machine.setWatchdogTimeout(1000);
+machine.setWatchdogHandler([](Machine& machine) {
+    std::cerr << "Watchdog timeout!" << std::endl;
+    return true;
+});
+machine.initialize();
+
+// Use the machine
+machine.evalFile("main.js");
+```
+
+
 \subsection{JavaScript classes}
 
 As described in Section \ref{sub:class-wrapping}, the library provides a mechanism for creating JavaScript classes, which can be backed by C++ objects.
@@ -223,7 +221,7 @@ struct MyBuilder : public ProtoBuilder::Opaque<MyClass>, public ProtoBuilder::Pr
     return new MyClass();
   }
 
-  // The default destructOpaque uses delete. By overriding it, we can use a custom deleter
+  // The default destructOpaque uses delete. By overriding it, a custom deleter can be used
 
   static void addProperties(ContextRef ctx, Object proto) {
     addPropMember<int, &MyClass::foo>(ctx, proto, "foo");

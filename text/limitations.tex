@@ -55,13 +55,13 @@ As the Filesystem MFeature is implemented using C++ `std::filesystem` API, which
 
 The broken functionality involves listing directories --- `readdir` and `rmdir`. Fortunately, working with files works without a problem, which is an essential functionality for loading JavaScript files.
 
-((TODO: fal))
+It would be possible to separately reimplement the MFeature to use the POSIX API, but it would make more sense to implement a more complex abstraction layer around the filesystem API, which could be used by other Jaculus components as well. However, that would require a significant amount of work, which is not strictly necessary for the functionality of Jaculus-esp32.
 
 \section{Compatibility with other platforms}
 
 Through implementing all of the created components, I have focused on only using the standard C++20 library. This worked well for development, as all of the functionality could be tested locally on a desktop PC, and later everything could be easily integrated with the ESP-IDF. Unfortunately, after briefly exploring development options of platforms other than ESP32 (STM32, RP2040), I have discovered that the C++20 standard is often not fully supported. Some platforms do not even fully support older standards, such as C++17.
 
-This has dealt a significant blow to the portability of these components, which will have to be partially rewritten to support other platforms. Primarily, an abstraction layer around the filesystem API and asynchronous elements (threads, synchronization primitives) will have to be implemented.
+This has dealt a significant blow to the portability of these components, which would have to be partially rewritten to support other platforms. Primarily, an abstraction layer around the filesystem API and asynchronous elements (threads, synchronization primitives) would have to be implemented.
 
 
 \shorthandon{'}

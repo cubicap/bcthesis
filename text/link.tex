@@ -54,12 +54,12 @@ Communicators that send data do not have a unified binding interface. Instead, t
 
 \subsection{Full Jaculus-link pipeline}
 
-The default configuration of the entire pipeline provided by the library is shown in the diagram in Figure \ref{fig:link-pipeline}.
+An example configuration of the entire pipeline provided by the library is shown in the diagram in Figure \ref{fig:link-pipeline}.
 
 \begin{figure}[!ht]
     \centering
     \includegraphics[width=\textwidth]{img/link-pipeline}
-    \caption{Default configuration of full Jaculus-link pipeline}
+    \caption{An example configuration of the full Jaculus-link pipeline}
     \label{fig:link-pipeline}
 \end{figure}
 
@@ -95,11 +95,9 @@ Jaculus-link is a header-only library, so adding the `include` directory to the 
 
 \subsection{Multiplexer}
 
-((TODO: stream))
-
 The class `Mux` is a data link implemented as a multiplexer and is templated by the class implementing the underlying multiplexer protocol. The only protocol provided with the library is in the `CobsEncoder` class. To implement another protocol, the user can create a class with the same interface as `CobsEncoder`.
 
-The `Mux` constructor takes a `Duplex` instance, which serves as an abstraction around the stream connection.
+The `Mux` constructor takes a `Duplex` instance, which defines the stream connection used for transmitting and receiving data. The `Duplex` interface serves as an abstraction layer for the stream connection and must be implemented by the user.
 
 \subsection{Router}
 

@@ -16,7 +16,7 @@
 
 Microcontrollers in embedded devices are typically programmed in compiled languages like C, C++, or Rust. Although these languages provide high performance and low overhead at runtime, they can be challenging to learn and use.
 
-Another problem of compiled languages, especially in embedded environments, is a long development cycle. Because of the limited resources of a microcontroller ((TODO)), the executable of such applications is usually self-contained and, besides the application itself, contains all used libraries, including the standard ones. All libraries must be linked on every build and, in some cases, also compiled regardless of whether they have changed.
+Another problem of compiled languages, especially in embedded environments, is a long development cycle. Because of the limited resources of a microcontroller, the executable of such applications is usually self-contained to decrease the binary size and to avoid the need for a dynamic linker. Besides the application itself, the executable contains all used libraries, including the standard ones. All libraries must be linked on every build and, in some cases, also compiled regardless of whether they have changed.
 
 The development cycle is often further prolonged by long deployment times. The build-deploy process can take several minutes, severely hindering development speed, especially in the early development stages when the developer rapidly iterates over the code.
 
@@ -29,15 +29,15 @@ As embedded devices often interact with the physical world or communicate with o
 
 The proposed solution is to use a high-level, interpreted language instead. The language has to:
 
-  - have low enough hardware requirements to run on a microcontroller
-  - be easy to learn and use
-  - be able to express reactive and asynchronous elements
+  - have low enough hardware requirements to run on a microcontroller,
+  - be easy to learn and use, and
+  - be able to express reactive and asynchronous elements.
 
 \noindent
 The solution should also provide an ecosystem for controlling the device and developing applications. The ecosystem should include:
 
-  - a firmware for the microcontroller, which gives complete control over the device to the runtime environment and provides an interface for controlling the device
-  - a command-line application for controlling the device and uploading code to it
+  - a firmware for the microcontroller, which gives complete control over the device to the runtime environment and provides an interface for controlling the device, and
+  - a command-line application for controlling the device and uploading code to it.
 
 \section{Language choice}
 
@@ -55,18 +55,16 @@ JavaScript is a popular language commonly used in web browsers. The language spe
 
 Because of the reasons mentioned above, JavaScript was chosen to be used in the solution implemented in this thesis.
 
-Because ((TODO)) JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as transpiling\footnote{Transpilation refers to the process of source-to-source compilation} or interpreting TypeScript on a microcontroller is not feasible, it must first be transpiled to JavaScript outside of the device.
+However, as JavaScript is weakly typed, debugging errors caused by type mismatches is sometimes challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as transpiling\footnote{Transpilation refers to the process of source-to-source compilation} or interpreting TypeScript on a microcontroller is not feasible, it must first be transpiled to JavaScript outside of the device.
 
 
 \chapter{Overview}
 
 The main task is to create a JavaScript runtime environment for microcontrollers and an ecosystem around it for managing the device and developing applications for it.
 
-((TODO))The implementation should primarily focus on the ESP32 and ESP32-S3 microcontrollers, as they are popular in the maker community and provide high performance at a reasonably low price.
+The implementation primarily focuses on the ESP32 and ESP32-S3 microcontrollers, as they are popular in the maker community and provide high performance at a reasonably low price. Because of their extensive feature set, they also serve as a good entry point for beginners, who can try out many different things with a single device.
 
-((TODO))A firmware for a microcontroller, which gives complete control over the device to the JavaScript runtime and provides an interface for programming and controlling the device, should be created. A device running this firmware will be called a *Jaculus device*.
-
-((TODO obrazek))
+A firmware for a microcontroller, which gives complete control over the device to the JavaScript runtime and provides an interface for programming and controlling the device, should be created. A device running this firmware will be called a *Jaculus device*.
 
 \section{Runtime environment}
 
@@ -94,21 +92,38 @@ Most microcontrollers feature a serial interface, such as a USB to UART bridge o
 
 Using a single stream connection also adds flexibility in the choice of the transport medium. Aside from the serial interface, the protocol can be used over a network socket, web socket, or any other byte stream connection.
 
+\section{Filesystem}
+
+The device must have suitable storage to allow the user to upload and store code on the device.
+
+The ESP32 and ESP32-S3 microcontrollers feature a flash memory chip, which can be used to store user data. The ESP-IDF also provides an implementation of the FAT filesystem, which can be used as an abstraction to store files in the flash memory.
+
 \section{Tooling}
 
 A suitable tooling should be created to support the development of applications for the device. The tools should allow the user to upload code to the device, control the runtime, and monitor the device's state.
 
 \section{Implementation}
 
+\hyphenation{Ja-va-Script}
+
 To achieve the goals described above and to allow possible future reuse of independent components, the project is split into multiple parts:
 
-  - Jaculus-machine -- standalone, embeddable, C++ centric JavaScript runtime using QuickJS at its core
-  - Jaculus-link -- standalone communication library for multiplexing multiple channels on a single stream connection
-  - Jaculus-dcore -- core library for creating new Jaculus devices
-  - Jaculus-tools -- command-line application for controlling and monitoring Jaculus devices
-  - Jaculus-esp32 -- Jaculus device port for the ESP32 platform (with support for ESP32 and ESP32-S3 SOCs)
+  - Jaculus-machine --- standalone, embeddable, C++ centric JavaScript runtime using QuickJS at its core
+  - Jaculus-link --- standalone communication library for multiplexing multiple channels on a single stream connection
+  - Jaculus-dcore --- core library for creating new Jaculus devices
+  - Jaculus-tools --- command-line application for controlling and monitoring Jaculus devices
+  - Jaculus-esp32 --- Jaculus device firmware for the ESP32 platform (with support for the ESP32 and ESP32-S3 SOCs)
 
-The components are described in more detail in their respective chapters.
+The libraries are implemented in C++ and are designed to be easily embeddable into other C++ applications. They export all of their functionality in the `jac` namespace and are configured as CMake projects.
+
+Figure \ref{fig:jaculus-design} shows an overview of the full Jaculus firmware. Jaculus-machine and Jaculus-link implement the runtime environment and communication protocol, respectively. Jaculus-dcore builds on top of them and provides a higher-level interface for controlling the device. Jaculus-esp32 then utilizes Jaculus-dcore and implements the firmware for the ESP32 platform by implementing the device-specific functionality.
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=\textwidth]{img/jaculus-design}
+  \caption{Components of the Jaculus firmware}
+  \label{fig:jaculus-design}
+\end{figure}
 
 
 \chapter{Used technologies}
@@ -121,7 +136,7 @@ ESP32 and ESP32-S3 are microcontrollers by Espressif Systems.
 
 ESP32 is a dual-core microcontroller based on the Xtensa LX6 CPU architecture with 520 KiB of SRAM. It features a UART interface for programming.
 
-ESP32-S3 is a dual-core microcontroller based on the Xtensa LX7 CPU architecture with 512 KiB of SRAM. It features a native USB interface and a UART interface for programming.
+The ESP32-S3 is a newer iteration in the ESP32 series of microcontrollers. It is based on the Xtensa LX7 CPU architecture and has 512 KiB of SRAM. Aside from a UART interface, it also features a native USB interface, which can be used for programming.
 
 Both of these microcontrollers also provide a Wi-Fi and Bluetooth interface and a large number of other peripherals. On many boards based on these microcontrollers, the programming UART interface is connected to a USB-to-UART bridge, which allows the microcontroller to be programmed over USB. The USB ports are also often used for communication with the program running on the microcontroller.
 
@@ -141,11 +156,11 @@ Although JavaScript programs are event-driven, the code is executed in a single 
 
 \section{TypeScript}
 
-TypeScript is a strongly typed superset of JavaScript. It is developed and maintained by Microsoft. TypeScript is typically not interpreted directly and is instead compiled into JavaScript, which can be interpreted using any JavaScript runtime that supports the specified ECMAScript version.
+TypeScript is a strongly typed superset of JavaScript. It is developed and maintained by Microsoft. TypeScript is typically not interpreted directly and is instead transpiled into JavaScript, which can be interpreted using any JavaScript runtime that supports the specified ECMAScript version.
 
 \section{QuickJS}
 
-QuickJS\cite{quickjs} is a JavaScript engine implementing the ECMAScript 2020 Language Specification\cite{es2020} (ES2020). It was developed by Fabrice Bellard and is licensed under the MIT license. It is written in C and is designed to be embeddable in other applications.
+QuickJS\cite{quickjs} is a JavaScript engine implementing the ECMAScript 2020 Language Specification\cite{es2020} (ES2020). It was developed by Fabrice Bellard and Charlie Gordon and was released under the MIT license. It is written in C and is designed to be embeddable into other applications.
 
 QuickJS uses POSIX to implement atomic operations and system time. Although this slightly limits its portability, ESP-IDF, the primary target platform for Jaculus, supports POSIX.
 

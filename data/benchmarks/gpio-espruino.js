@@ -1,7 +1,5 @@
 var pin = 5;
 
-var write = gpio.write;
-
 function run(n) {
     var start = Date.now();
 
