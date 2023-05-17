@@ -162,6 +162,16 @@ Function sum = ff.newFunctionVariadic([](std::vector<ValueWeak> args) {
 });
 ```
 
+JavaScript functions can be called from C++ using the methods `Function::call` and `Function::callThis`. The latter additionally gives access to the `this` value of the function. Both methods have a template argument that specifies the type the return value should be converted to; arguments are converted to JavaScript values automatically. Object constructors in JavaScript are also represented as functions but have different call semantics --- in JavaScript, they are called with the `new` keyword. To call a constructor from C++, the `Function::callConstructor` method should be used. The following code shows some examples using the functions defined above:
+
+```cpp
+int added = add.call<int>(1, 2);  // returns 3
+int summed = sum.call<int>(1, 2, 3, 4);  // returns 10
+
+Function ctor = machine.eval("class { constructor(a) { this.a = a; } }");
+Value res = ctor.callConstructor(42);  // returns { a: 42 }
+```
+
 
 \section{Features}
 

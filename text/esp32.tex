@@ -33,9 +33,32 @@ Implementation of the Neopixel MFeature uses the SmartLeds\cite{smartleds} libra
 
 \section{Usage}
 
-The firmware can be flashed to the device manually using ESP-IDF tools or the Jaculus-tools application described in the next chapter.
+The firmware can be flashed to the device manually using ESP-IDF or the Jaculus-tools application described in the next chapter.
 
 The firmware uses the Jaculus-machine runtime at its core, meaning that adding new features to the runtime is done the same way described in Chapter \ref{chap:machine}.
+
+\subsection{JavaScript API}
+
+The runtime exposes the following modules to the JavaScript code:
+
+  - `stdio` --- standard input and output
+  - `fs` --- file system
+  - `path` --- lexical path manipulation
+  - `gpio` --- GPIO pins
+  - `adc` --- analog-to-digital converter
+  - `ledc` --- PWM generator
+  - `neopixel` --- WS2812B smart LED strip
+
+\noindent
+Aside from these modules, several global constants and functions are also available:
+
+  - `PlatformInfo` --- information about the platform
+  - `sleep`, `setTimeout`, `clearTimeout`, `setInterval`, `clearInterval` --- functions for configuring timers
+  - `console` --- console object for logging messages
+  - `exit` --- function for exiting the program
+
+\noindent
+While there is no browsable documentation, the API is documented in more detail in the type definitions files in the TypeScript examples directory attached to the thesis. The examples also demonstrate the usage of some of the modules.
 
 \shorthandon{'}
 \end{markdown*}

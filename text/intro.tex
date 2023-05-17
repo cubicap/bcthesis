@@ -125,6 +125,8 @@ Figure \ref{fig:jaculus-design} shows an overview of the full Jaculus firmware. 
   \label{fig:jaculus-design}
 \end{figure}
 
+The implementation opts for a multithreaded design because continuously interrupting the runtime to poll for new events would slow down the execution of JavaScript code. The JavaScript runtime runs in a separate thread and allows other threads to schedule tasks to be executed in the runtime thread. The main thread then executes these tasks in the order they were scheduled. Separate threads are also used for other tasks, such as communication with the host device. Therefore, most implemented data structures implement blocking operations, allowing these threads to wait for respective events instead of polling for them.
+
 
 \chapter{Used technologies}
 

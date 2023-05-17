@@ -16,27 +16,40 @@
 
 \chapter{Attachments}
 
-All source code created as a result of this thesis is available in the attached ZIP archive. The archive contains the following directories, each containing the source code of the respective part of the implementation:
+All source code created as a result of this thesis is available in the attached ZIP archive. The archive contains the following directories, each containing a snapshot of a git repository of the respective part of the implementation:
 
-- `Jaculus-dcore`
-- `Jaculus-machine`
-- `Jaculus-link`
-- `Jaculus-esp32`
-- `Jaculus-tools`
-- `QuickJS`
+  - `Jaculus-dcore`
+  - `Jaculus-machine`
+  - `Jaculus-link`
+  - `Jaculus-esp32`
+  - `Jaculus-tools`
+  - `QuickJS`
 
 The `Jaculus-esp32/ts-examples` directory contains examples of TypeScript programs that can be run on the Jaculus-esp32 firmware.
 
-Documentation for `Jaculus-machine` and `Jaculus-link` is available in the `docs` subdirectory of their respective directories. It is also hosted online at \url{https://machine.jaculus.org}, and \url{https://link.jaculus.org}.
+Documentation for `Jaculus-machine` and `Jaculus-link` is available in the `docs` subdirectory of their respective directories. The project's homepage, with Getting Started and Troubleshooting guides, is available in the `docs` subdirectory of the `Jaculus-dcore` directory. The homepage and the documentation are also hosted online at:
+
+  - \url{https://jaculus.org}
+  - \url{https://machine.jaculus.org}
+  - \url{https://link.jaculus.org}
+
+An upstream version of the respective repositories is available on GitHub:
+
+  - \url{https://github.com/cubicap/Jaculus-machine},
+  - \url{https://github.com/cubicap/Jaculus-link},
+  - \url{https://github.com/cubicap/Jaculus-tools},
+  - \url{https://github.com/cubicap/Jaculus-dcore},
+  - \url{https://github.com/cubicap/Jaculus-esp32},
+  - \url{https://github.com/cubicap/quickjs}
 
 
-\chapter{Building Jaculus for ESP32}
+\chapter{Building and flashing Jaculus-esp32}
 
 The Jaculus-esp32 firmware can be built using the ESP-IDF version 5.0.1 or newer. For the setup of the ESP-IDF, please refer to the official documentation\footnote{In: ESP-IDF Programming Guide \[online\]. \[visited on 2023-05-16\]. Available from: \url{https://docs.espressif.com/projects/esp-idf/en/v5.0.1/esp32/get-started/}}.
 
 The ESP-IDF can be used from the command line. To set up the environment variables for the ESP-IDF, run the corresponding export script in the ESP-IDF directory:
 
-- Linux, macOS: `source export.sh`
+- Linux: `source export.sh`
 - Windows: `export.bat` or `export.ps1`
 
 Select the target platform by renaming the corresponding configuration file in the `Jaculus-esp32` directory of the project to `sdkconfig`:
