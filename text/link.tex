@@ -16,7 +16,7 @@
 
 As described in the introduction, the Jaculus device and the host communicate through a single byte stream connection.
 
-Because the services running on the device work mostly independently, it is desirable to have independent communication channels for each of them. This can be achieved by multiplexing multiple channels on a stream connection.
+Because the services running on the device work mostly independently, it is desirable to have independent communication channels for each of them. This can be achieved by multiplexing a number of channels on a stream connection.
 
 Sometimes, the device may have multiple communication interfaces, which can all be used for communication with the host. In such cases, it is desirable to be able to route the communication to the appropriate interface.
 
@@ -74,24 +74,20 @@ The modified version of the algorithm moves the delimiter byte to the start of t
 
 Moving the delimiter byte to the start of the data frame allows for resetting the packetization state in case a previous data frame is lost, malformed, or other corrupted data is received on the stream. This is important for the use on microcontrollers, where the used serial port is also often used for logging errors by the built-in libraries. These errors would otherwise cause the packetizer to lose synchronization and cause data frames to be lost.
 
-Figure \ref{fig:cobs-diagram} shows a data frame structure diagram. In the data section of the data frame, the first byte contains the channel identifier, followed by the transmitted data. The last two bytes of the data frame contain the CRC16 checksum of the data section.
+Figure \ref{fig:cobs-diagram} shows a data frame structure diagram. In the data section of the data frame, the first byte contains the channel identifier, followed by the transmitted data. The last two bytes of the data frame contain the CRC16 checksum of the data section for error detection.
 
 
 \begin{figure}[!ht]
     \centering
     \includegraphics[width=\textwidth]{img/cobs-diagram}
-    \raggedright
-    \footnotesize{Adapted from: MALEC, Jaroslav. *Protocol diagram*. In: GitHub \[online\]. 2021 \[visited on 2023-05-10\]. Available from: \url{https://github.com/yaqwsx/Jaculus/pull/15}.}
-    \caption{Diagram of the COBS-based multiplexer protocol}
+    \caption[Diagram of the COBS-based multiplexer protocol data frame]{Diagram of the COBS-based multiplexer protocol data frame\footnote{Adapted from: MALEC, Jaroslav. *Protocol diagram*. In: GitHub \[online\]. 2021 \[visited on 2023-05-10\]. Available from: \url{https://github.com/yaqwsx/Jaculus/pull/15}.}}
     \label{fig:cobs-diagram}
 \end{figure}
 
 
 \section{Usage} \label{sec:link-usage}
 
-\subsection{Adding the library to a project}
-
-Jaculus-link is a header-only library, so adding the `include` directory to the project's include path is sufficient. It is also configured as a CMake project and exports a target `jac-link` that can be linked to other projects.
+This section describes the usage of the Jaculus-link library.
 
 \subsection{Multiplexer}
 
@@ -127,9 +123,7 @@ The `handle` object is used to receive data from the data link and must be bound
 
 \subsection{Communicators}
 
-The communicators are used as an abstraction layer for communicating through channels. Communicators provide an interface for sending or receiving data through a channel.
-
-The provided communicator types are:
+The communicators are used as an abstraction layer for communicating through channels. Communicators provide an interface for sending or receiving data through a channel. The provided communicator types are:
 
 - `OutputStreamCommunicator` --- sends data as a stream of bytes
 - `InputStreamCommunicator` --- receives data as a stream of bytes

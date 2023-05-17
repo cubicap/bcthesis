@@ -17,11 +17,13 @@
 
 Several requirements were outlined in the introduction. This section evaluates the solution based on those requirements.
 
-Compared to native programs, the solution significantly reduces the development cycle length. While the development cycle of native programs can, in worse cases, take several minutes, with Jaculus, it is reduced to several seconds. The build time shows the most considerable improvement, as no build process is needed for JavaScript programs, and the build time of TypeScript programs is mostly negligible compared to native programs. Deployment is also faster, as only the application code needs to be uploaded to the device, unlike native programs, where the entire firmware partition is often overwritten.
+\section{Comparison with native programs}
+
+Compared to native programs, the solution significantly reduces the development cycle length. While the build-deploy-test process of native programs can, in worse cases, take several minutes, with Jaculus, it is reduced to several seconds. The build time shows the most considerable improvement, as no build process is needed for JavaScript programs, and the build time of TypeScript programs is mostly negligible compared to native programs. Deployment is also faster, as only the application code needs to be uploaded to the device, unlike native programs, where the entire firmware partition is often overwritten.
 
 The shortened development cycle naturally comes at a price, that being the performance of JavaScript as an interpreted language. However, the performance is still sufficient for running most application logic. If a performance-sensitive part of the application is identified, it can be reimplemented in C++ and compiled into a native module.
 
-\section{Comparison with other solutions}
+\section{Comparison with other interpreted solutions}
 
 There are already existing solutions to programming microcontrollers using JavaScript. While it would be nice to have a detailed comparison of at least some of them, it would stretch the scope of this thesis too far. However, a brief comparison of Jaculus with other solutions is provided in this section. These solutions were chosen based on their popularity:
 
@@ -30,7 +32,7 @@ There are already existing solutions to programming microcontrollers using JavaS
 - Espruino\cite{espruino} (JavaScript)
 - Moddable SDK\cite{moddable} (JavaScript)
 
-A common characteristic of these solutions is their much larger feature set compared to Jaculus. They have not only much larger hardware and library support but also larger ecosystems and communities. Espruino and CircuitPython provide very convenient development environments.
+A common characteristic of these solutions is their much larger feature set compared to Jaculus. They have not only much larger hardware and library support but also larger ecosystems and communities. For example, Espruino and CircuitPython provide very convenient development environments.
 
 What sets Jaculus apart from the other solutions is its much higher-level abstraction around different JavaScript concepts. This allows for much easier wrapping of existing libraries and other code to JavaScript modules, meaning that while the hardware support of Jaculus is currently low, adding more features to the runtime is a quick and straightforward task.
 
@@ -44,7 +46,7 @@ NodeMCU is a Lua interpreter for ESP8266 and ESP32 microcontrollers. On the one 
 
 \subsection{JavaScript solutions}
 
-Comparing Jaculus with the other JavaScript solutions is more straightforward, as they all share the same language. Their main difference is their performance, implementation, and tooling.
+Comparing Jaculus with the other JavaScript solutions is more straightforward, as they all share the same language. The comparison focuses on their performance, implementation, and tooling.
 
 Espruino is an open-source JavaScript interpreter for microcontrollers. The biggest problem of Espruino is its low performance, which can be seen in the performance comparison below. Espruino also implements only a limited subset of an older version of the ECMAScript standard, meaning some JavaScript code cannot be run on it. Espruino also provides a convenient development environment through its Web IDE, which allows for live code editing and debugging and does not require any additional tools to be installed.
 
@@ -65,7 +67,7 @@ console.log("Time: " + (end - start));
 
 The benchmarks show that Jaculus is significantly faster in computational tasks than Espruino and Moddable SDK. Moddable SDK is faster in the binary-trees benchmark, which is targeted at the creation of new objects and memory allocation. Moddable SDK is also faster in the GPIO benchmark, which may be caused by poorly optimized abstraction used to implement the native module in Jaculus.
 
-The low performance of Espruino can likely be attributed to the fact that internally, Espruino parses the JavaScript code into an abstract syntax tree, which is then directly interpreted. By contrast, the approach used by Jaculus and Moddable SDK, is first to compile the source code into bytecode, which is then interpreted. This approach allows for more optimizations to be performed on the bytecode, which results in better performance.
+The low performance of Espruino can likely be attributed to the fact that internally, Espruino parses the JavaScript code into an abstract syntax tree, which is then directly interpreted. By contrast, the approach used by Jaculus and Moddable SDK is first to compile the source code into bytecode and then interpret it. This approach allows for more optimizations to be performed on the bytecode and results in better performance.
 
 
 \begin{table}[ht]
@@ -128,7 +130,7 @@ As the Filesystem MFeature is implemented using C++ `std::filesystem` API, which
 
 The broken functionality involves listing directories --- `readdir` and `rmdir`. Fortunately, working with files works without a problem, which is an essential functionality for loading JavaScript files.
 
-It would be possible to separately reimplement the MFeature to use the POSIX API, but it would make more sense to implement a more complex abstraction layer around the filesystem API, which could be used by other Jaculus components as well. However, that would require a significant amount of work, which is not strictly necessary for the functionality of Jaculus-esp32.
+It would be possible to separately reimplement the MFeature to use the POSIX API, but it would make more sense to implement a more complex abstraction layer around the filesystem API, which could be used by other Jaculus components as well. However, that would require a significant amount of work, which was not strictly necessary for the functionality of Jaculus-esp32.
 
 \section{Compatibility with other platforms}
 
@@ -141,11 +143,11 @@ This dealt a significant blow to the portability of these components, which woul
 
 The goal of this thesis was to create an ecosystem for programming embedded devices using JavaScript.
 
-The presented solution consists of Jaculus-dcore library and Jaculus-tools command-line application. The library provides the core functionality of a Jaculus device, and the application provides a way to interact with the device. The Jaculus-dcore library is also integrated into the Jaculus-esp32 firmware, which ports the solution to the ESP32 platform.
+The presented solution consists of Jaculus-dcore library and Jaculus-tools command-line application. The library provides the core functionality of a Jaculus device, and the application provides a way to interact with the device. The Jaculus-dcore library is also integrated into the Jaculus-esp32 firmware, which ports the solution to the ESP platform.
 
 Two standalone libraries were also created as part of the solution: Jaculus-link and Jaculus-machine. The former is a communication library, and the latter is an implementation of the JavaScript runtime with easy extensibility. Both libraries are well documented and tested, and can be used independently from the rest of the solution.
 
-Although the solution is in a usable state and, in terms of performance, can compete with other existing solutions, many features are still missing, and some bugs are inevitably present. Most importantly, more MFeatures must be implemented for Jaculus to be a viable alternative to other existing solutions. Further improvements can also be made to the upload protocol, which is presently very simple and could have better performance and reliability.
+Although the solution is usable and, in terms of performance, can compete with other existing solutions, many features are still missing, and some bugs are inevitably present. Most importantly, more MFeatures must be implemented for Jaculus to be a viable alternative to other existing solutions. Further improvements can also be made to the upload protocol, which is presently very simple and could have better performance and reliability. The limitations described in the previous chapter should also be addressed.
 
 \shorthandon{'}
 \end{markdown*}

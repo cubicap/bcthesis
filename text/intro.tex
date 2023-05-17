@@ -16,13 +16,13 @@
 
 Microcontrollers in embedded devices are typically programmed in compiled languages like C, C++, or Rust. Although these languages provide high performance and low overhead at runtime, they can be challenging to learn and use.
 
-Another problem of compiled languages, especially in embedded environments, is a long development cycle. Because of the limited resources of a microcontroller, the executable of such applications is usually self-contained to decrease the binary size and to avoid the need for a dynamic linker. Besides the application itself, the executable contains all used libraries, including the standard ones. All libraries must be linked on every build and, in some cases, also compiled regardless of whether they have changed.
+Another problem of compiled languages, especially in embedded environments, is a long development cycle. Because of the limited resources of a microcontroller, the executable of such applications is usually self-contained to decrease the binary size and to avoid the need for a dynamic linker. Besides the application itself, such executables contain all used libraries, including the standard ones. All libraries must be linked on every build and, in some cases, also compiled regardless of whether they have changed.
 
 The development cycle is often further prolonged by long deployment times. The build-deploy process can take several minutes, compromising development speed, especially in the early development stages when the developer rapidly iterates over the code.
 
-The long development cycle can both hinder development speed and increase the development cost. Another big motivator for reducing the development cycle length is teaching beginners embedded programming. Seeing the results of their work quickly is important for keeping them motivated and interested in the subject, especially with children and their shorter attention spans.
+The long development cycle can both hinder development speed and increase the development cost. Another big motivator for reducing the development cycle length is teaching beginners embedded programming. Seeing the results of their work quickly is important for keeping the learners motivated and interested in the subject, especially with children and their shorter attention spans.
 
-As embedded devices often interact with the physical world or communicate with other devices, they often have to wait for external events rather than continuously perform a given computation. Therefore, most embedded applications have reactive and asynchronous elements, which are difficult to express in low-level languages. This induces a lot of boilerplate code, which obfuscates the main application logic and makes it harder to develop and maintain. Even though high-level languages such as C++ and Rust somewhat alleviate this issue, C is often the only language with direct support from the manufacturers, which adds more work for the developer and code to the project.
+As embedded devices often interact with the outside world or communicate with other devices, they often have to wait for external events rather than continuously perform a given computation. Therefore, most embedded applications have reactive and asynchronous elements, which are difficult to express in low-level languages. This induces a lot of boilerplate code, which obfuscates the main application logic and makes it harder to develop and maintain. Even though high-level languages such as C++ and Rust somewhat alleviate this issue, C is often the only language with direct support from the manufacturers, which adds more work for the developer and more code to the project.
 
 
 \chapter{Proposed solution}
@@ -37,7 +37,7 @@ The proposed solution is to use a high-level, interpreted language instead. The 
 The solution should also provide an ecosystem for controlling the device and developing applications. The ecosystem should include:
 
   - firmware for the microcontroller, which gives complete control over the device to the runtime environment and provides an interface for controlling the device, and
-  - a command-line application for controlling the device and uploading code to it.
+  - suitable tooling for controlling the device and uploading code to it.
 
 \section{Language choice}
 
@@ -47,13 +47,13 @@ Many interpreted languages are available. Because of their popularity in embeddi
   - Lua
   - JavaScript
 
-Python is a general-purpose language with an extensive standard library, which makes it suitable for many applications. However, its high hardware requirements caused by its large standard library and memory model make it unsuitable for embedded devices.
+Python is a general-purpose language with an extensive standard library, which makes it suitable for many applications. However, its high hardware requirements caused by its large standard library and its memory model make it unsuitable for embedded devices.
 
 Lua is a lightweight scripting language with a small standard library. It is suitable for embedded devices, and there are efficient Lua interpreters which are embeddable into C/C++ applications. On the other hand, Lua is not nearly as popular as Python or JavaScript, making it harder to find relevant resources and justify learning a new language.
 
-JavaScript is a popular language commonly used in web browsers. The language specification defines a small standard library, which is extended by the runtime environment, meaning a small memory footprint. It also maps very well to the event-centered nature of many embedded systems, as JavaScript is inherently event-driven. Multiple embeddable JavaScript engines exist, such as DukTape, MuJS, and QuickJS.
+JavaScript is a popular language commonly used in web browsers. The language specification defines a small standard library, which is extended by the runtime environment, meaning a small base memory footprint. It also maps very well to the event-centered nature of many embedded systems, as JavaScript is inherently event-driven. Multiple embeddable JavaScript engines exist, such as DukTape, MuJS, and QuickJS.
 
-Because of the reasons mentioned above, JavaScript was chosen to be used in the solution implemented in this thesis.
+Because of the reasoning above, JavaScript was chosen to be used in the solution implemented in this thesis.
 
 However, since JavaScript is weakly typed, debugging errors caused by type mismatches can be challenging. A possible solution is to use a strongly typed language, such as TypeScript. However, as transpiling\footnote{Transpilation refers to the process of source-to-source compilation} or interpreting TypeScript on a microcontroller is not feasible, it must first be transpiled to JavaScript outside of the device.
 
@@ -88,7 +88,7 @@ The created solution uses QuickJS because it provides a good balance regarding i
 
 There should be a way to communicate with the device --- to upload code, control the runtime and monitor its state.
 
-Most microcontrollers feature a serial interface, such as a USB to UART bridge or a native USB interface. A serial interface only provides a single duplex byte stream, meaning a protocol must be implemented on top of it to enable communication with multiple services over a single connection.
+Most microcontrollers feature a serial interface, such as a USB-to-UART bridge or a native USB interface. A serial interface only provides a single duplex byte stream, meaning a protocol must be implemented on top of it to enable communication with multiple services over a single connection.
 
 Using a single stream connection also adds flexibility in the choice of the transport medium. Aside from the serial interface, the protocol can be used over a network socket, web socket, or any other kind of byte stream connection.
 
@@ -112,16 +112,16 @@ To achieve the goals described above and to allow for possible future reuse of i
   - Jaculus-link --- standalone communication library for multiplexing a number of channels on a single stream connection
   - Jaculus-dcore --- core library for creating new Jaculus devices
   - Jaculus-tools --- command-line application for controlling and monitoring Jaculus devices
-  - Jaculus-esp32 --- Jaculus device firmware for the ESP32 platform (with support for the ESP32 and ESP32-S3)
+  - Jaculus-esp32 --- Jaculus device firmware for the ESP platform (with support for the ESP32 and ESP32-S3)
 
-The libraries are implemented in C++ and are designed to be easily embeddable into other C++ applications. They export all of their functionality in the `jac` namespace and are configured as CMake projects.
+The libraries are implemented in C++ and are designed to be easily embeddable into other C++ applications. They export all of their functionality in the `jac` namespace and are configured as CMake projects and ESP-IDF components. In code examples, the `jac` namespace is omitted for brevity but should be present in actual code.
 
-Figure \ref{fig:jaculus-design} shows an overview of the full Jaculus firmware. Jaculus-machine and Jaculus-link implement the runtime environment and communication protocol, respectively. Jaculus-dcore builds on top of them and provides a higher-level interface for controlling the device. Jaculus-esp32 then utilizes Jaculus-dcore and implements the firmware for the ESP32 platform by implementing the device-specific functionality.
+Figure \ref{fig:jaculus-design} shows an overview of the full Jaculus firmware. Jaculus-machine and Jaculus-link implement the runtime environment and communication protocol, respectively. Jaculus-dcore builds on top of them and provides a higher-level interface for controlling the device. Jaculus-esp32 then utilizes Jaculus-dcore and implements the firmware for the ESP platform by implementing the device-specific functionality.
 
 \begin{figure}[!ht]
   \centering
   \includegraphics[width=\textwidth]{img/jaculus-design}
-  \caption{Components of the Jaculus firmware}
+  \caption{Structure of the Jaculus firmware}
   \label{fig:jaculus-design}
 \end{figure}
 
@@ -140,7 +140,7 @@ ESP32 is a dual-core microcontroller based on the Xtensa LX6 CPU architecture wi
 
 The ESP32-S3 is a newer iteration of the ESP32 series of microcontrollers. It is based on the Xtensa LX7 CPU architecture and has 512 KiB of SRAM. Aside from a UART interface, it also features a native USB interface, which can be used for programming.
 
-Both of these microcontrollers also provide a Wi-Fi and Bluetooth interface and a large number of other peripherals. On many boards based on these microcontrollers, the programming UART interface is connected to a USB-to-UART bridge, which allows the microcontroller to be programmed over USB. The USB ports are also often used for communication with the program running on the microcontroller.
+Both of these microcontrollers also provide a Wi-Fi and Bluetooth interface and a large number of other peripherals. On many boards based around these microcontrollers, the programming UART interface is connected to a USB-to-UART bridge, which allows the microcontroller to be programmed over USB. The USB ports are also often used for communication with the program running on the microcontroller.
 
 These microcontrollers are also coupled with flash memory, which stores the firmware and can be used to store other data. The flash memory size varies between individual boards but is usually at least 4 MiB.
 
@@ -148,7 +148,7 @@ These microcontrollers are also coupled with flash memory, which stores the firm
 
 ESP-IDF is the official development framework for microcontrollers from Espressif Systems. The framework is based on FreeRTOS and provides a set of libraries and tools for developing applications for, among others, ESP32 and ESP32-S3 microcontrollers.
 
-Most of the provided libraries have only a C API. The framework also supports C++20 with a large subset of its standard library. However, some parts of the standard library do not work entirely correctly (e.g., `std::filesystem`).
+Most of the libraries provided with ESP-IDF have only a C API. The framework also supports C++20 with a large subset of its standard library. However, some parts of the standard library do not work entirely correctly (e.g., `std::filesystem`).
 
 \section{JavaScript}
 
@@ -158,7 +158,7 @@ Although JavaScript programs are event-driven, the code is executed in a single 
 
 \section{TypeScript}
 
-TypeScript is a strongly typed superset of JavaScript. It is developed and maintained by Microsoft. TypeScript is typically not interpreted directly and is instead transpiled into JavaScript, which can be interpreted using any JavaScript runtime that supports the specified ECMAScript version.
+TypeScript is a strongly typed superset of JavaScript and is developed and maintained by Microsoft. TypeScript is typically not interpreted directly and is instead transpiled into JavaScript, which can be interpreted using any JavaScript runtime that supports the specified ECMAScript version.
 
 \section{QuickJS}
 

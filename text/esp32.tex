@@ -22,10 +22,10 @@ Jaculus-esp32 is a Jaculus device firmware for the ESP32 and ESP32-S3 microcontr
 
 Aside from the features provided by Jaculus-dcore, Jaculus-esp32 only implements control over the most basic peripherals, which are:
 
-  - GPIO -- general-purpose input/output pins
-  - ADC -- analog-to-digital converter
-  - LEDC -- generator of PWM signals
-  - Neopixel -- WS2812B smart LED strip
+  - GPIO --- general-purpose input/output pins
+  - ADC --- analog-to-digital converter
+  - LEDC --- generator of PWM signals
+  - Neopixel --- WS2812B smart LED strip
 
 Jaculus-esp32 also implements a specialized event queue based on a FreeRTOS queue and supports scheduling events from an interrupt context. This is used in the GPIO feature, which generates events when the state of a pin changes through an interrupt.
 
@@ -33,7 +33,7 @@ Implementation of the Neopixel MFeature uses the SmartLeds\cite{smartleds} libra
 
 \section{Usage}
 
-The firmware can be flashed to the device manually using ESP-IDF or the Jaculus-tools application described in the next chapter.
+The firmware can be flashed to the device manually using ESP-IDF or the Jaculus-tools application described in the previous chapter.
 
 The firmware uses the Jaculus-machine runtime at its core, meaning that adding new features to the runtime is done the same way described in Chapter \ref{chap:machine}.
 
@@ -52,10 +52,10 @@ The runtime exposes the following modules to the JavaScript code:
 \noindent
 Aside from these modules, several global constants and functions are also available:
 
-  - `PlatformInfo` --- information about the platform
+  - `PlatformInfo` --- information about the device
   - `sleep`, `setTimeout`, `clearTimeout`, `setInterval`, `clearInterval` --- functions for configuring timers
   - `console` --- console object for logging messages
-  - `exit` --- function for exiting the program
+  - `exit` --- function for stopping the program
 
 \noindent
 While there is no browsable documentation, the API is documented in more detail in the type definitions files in the TypeScript examples directory attached to the thesis. The examples also demonstrate the usage of some of the modules.

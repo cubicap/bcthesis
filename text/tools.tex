@@ -35,7 +35,7 @@ The commands are run by specifying them after the `jac` command.
 
 \subsection{Communication with the device}
 
-To communicate with the device, the application must implement the same protocol as the Jaculus-link library described in Section \ref{sec:mux-protocol}.
+To communicate with the device, the application implements the same protocol as the Jaculus-link library described in Section \ref{sec:mux-protocol}.
 
 The application implements a similar pipeline to the one used in the library, except for the Routing layer, which is omitted, as connecting to multiple devices would be pointless. Aside from that and the language choice resulting in some different programming paradigms, the architecture is mostly similar.
 
@@ -43,9 +43,9 @@ The application implements a similar pipeline to the one used in the library, ex
 
 The application provides access to the device via the `Device` class. The class exposes the following functionality to the user:
 
-  - Controller and Uploader services
-  - standard input and output of the running program
-  - output of the device logger
+  - Controller and Uploader services,
+  - standard input and output of the running program, and
+  - output of the device logger.
 
 \subsection{Command-line argument parser}
 

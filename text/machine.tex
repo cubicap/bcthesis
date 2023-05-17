@@ -20,7 +20,7 @@ A large portion of Jaculus-machine is a set of wrapper classes around the QuickJ
 
 Jaculus-machine uses two core concepts, which are referred to as *Machine* and *MFeature* in the code and the rest of this thesis. A *Machine* is an instance of the runtime complete with all the selected MFeatures. An *MFeature* is a module that can be used as a part of a Machine and which provides functionality to the runtime or to other MFeatures.
 
-The modular design of Jaculus-machine allows for easy extensibility and customization of the runtime. The user can select which MFeatures should be included in the runtime and also create new MFeatures with low effort. It also allows for easier portability of existing MFeatures to other platforms.
+The modular design of Jaculus-machine allows for easy extensibility and customization of the runtime. The user can select which MFeatures should be included in the runtime and also create new MFeatures with fairly low effort. It also allows for easier portability of existing MFeatures to other platforms.
 
 All public functionality of the library is contained in the `jac` namespace. QuickJS exports its symbols in the global namespace, and their names are usually prefixed with `JS`. The user should not interact with QuickJS directly for regular use, as the library provides wrappers for most of its functionality.
 
@@ -30,7 +30,7 @@ The main entry point of the library is a Machine instance. After a Machine is cr
 
 A Machine is defined using templated stack inheritance from the `MachineBase` class and selected MFeature classes. The `MachineBase` class provides the core functionality of the runtime, and the MFeature classes implement additional functionality, such as an event loop and filesystem access.
 
-Stack inheritance is a technique where a class is defined as a template parametrized by another class, which it then inherits from. The inheritance is resolved at compile time, and each class in the stack can access the members of the classes lower in the stack. An example of stack inheritance can be seen in a code snippet below.
+Stack inheritance is a technique where a class is defined as a template parametrized by another class, which it then inherits from. The inheritance chain is resolved at compile time, and each class in the stack can access the members of the classes lower in the stack. An example of stack inheritance can be seen in a code snippet below.
 
 ```cpp
 class A { ... };
@@ -65,7 +65,7 @@ using Value = ValueWrapper<true>;
 using ValueWeak = ValueWrapper<false>;
 ```
 
-A `ValueWrapper` instance can be obtained either as a result of the execution of JavaScript code or by creating it from C++. New JavaScript values can be created using static methods of the `ValueWrapper` and its subclasses. The following code shows some examples:
+A `ValueWrapper` instance can be obtained either as a result of the execution of JavaScript code or by using static methods of `ValueWrapper` and its subclasses. The following code shows some examples:
 
 ```cpp
 ContextRef ctx = ...;
@@ -120,13 +120,13 @@ Different types of C++ exceptions are converted to JavaScript exceptions as foll
   - `std::exception` --- an `InternalError` object with the message `e.what()`
   - any other exception --- an `InternalError` object with the message "unknown exception"
 
-To create an `Exception` that will be converted to JavaScript as a specified `Error` type, the `Exception::create` method can be used:
+To create an `Exception` that will be converted to JavaScript as the specified `Error` type, the `Exception::create` method can be used:
 
 ```cpp
 Exception::create(Exception::Type::TypeError, "invalid argument");
 ```
 
-To create an `Exception` that will be converted to JavaScript as a specified value, the value should be created independently and then converted to an `Exception` using the `ValueWrapper::to` method:
+To create an `Exception` that will be converted to JavaScript as the specified value, the value should be created independently and then converted to an `Exception` using the `ValueWrapper::to` method:
 
 ```cpp
 Value value = ...;
@@ -139,7 +139,7 @@ The library provides an interface for defining JavaScript functions by wrapping 
 
 To wrap a function, the user can use the `newFunction` and `newFunctionThis`. All arguments that are passed to the function call will be converted to the types of the function parameters. If the number of arguments does not match or if the values cannot be converted to the required types, a `TypeError` will be thrown.
 
-Because variadic functions in C++ are processed at build time, they can not be universally wrapped to create their JavaScript counterparts. For this reason, `FunctionFactory` lets the user define a function with an argument of type `std::vector<ValueWrapper>`. When this function is called from JavaScript, the vector will contain all arguments passed to the function. These function can be created using the `newFunctionVariadic` and `newFunctionThisVariadic` methods.
+Because variadic functions in C++ are processed at build time, they can not be universally wrapped to create their JavaScript counterparts. For this reason, `FunctionFactory` lets the user define a function with an argument of type `std::vector<ValueWeak>`. When this function is called from JavaScript, the vector will contain all arguments passed to the function. These functions can be created using the `newFunctionVariadic` and `newFunctionThisVariadic` methods.
 
 The methods `newFunctionThis` and `newFunctionThisVariadic` additionally give access to the `this` value of the function (for example, when the function is called as a method of an object).
 
@@ -183,9 +183,9 @@ The following MFeatures are included with the library (their class names are suf
   - EventLoop --- an event loop that executes events from an event queue in the main thread
   - Filesystem --- an abstraction over the filesystem that provides access to files and directories
   - ModuleLoader --- an implementation of module loader for importing modules from the filesystem (using the `import` statement in JavaScript) and evaluating JavaScript files (using the `evalFile` method in C++)
-  - BasicStream --- an implementation of simple readable and writable stream types
+  - BasicStream --- an implementation of simple Readable and Writable stream types
   - Stdio --- a feature adding `stdin`, `stdout`, and `stderr` streams to the Machine and `console` interface to the JavaScript side
-  - Timers --- typical JavaScript timers and a sleep function
+  - Timers --- a feature for configuring timers from JavaScript and C++
 
 \subsection{Default event loop}
 
@@ -242,7 +242,7 @@ machine.evalFile("main.js");
 
 As described in Section \ref{sub:class-wrapping}, the library provides a mechanism for creating JavaScript classes, which can be backed by C++ objects.
 
-To create a class, the user must first define a `ProtoBuilder` structure. The `ProtoBuilder` describes the class's behavior and properties through its static interface. Its features are specified by inheriting from the structures in the `ProtoBuilder` namespace and overriding their static interfaces. These structs contain a default implementation of their interface and some convenience functions for describing the class. The following code shows an example of a `ProtoBuilder`:
+To create a class, the user must first define a `ProtoBuilder` structure. The `ProtoBuilder` describes the class's behavior and properties through its static interface. Its features are specified by inheriting from the structures in the `ProtoBuilder` namespace and overriding their static interfaces. These structures contain the default implementation of their interfaces and some convenience functions for describing the class. The following code shows an example of a `ProtoBuilder`:
 
 ```cpp
 struct MyBuilder : public ProtoBuilder::Opaque<MyClass>, public ProtoBuilder::Properties {
@@ -250,7 +250,7 @@ struct MyBuilder : public ProtoBuilder::Opaque<MyClass>, public ProtoBuilder::Pr
     return new MyClass();
   }
 
-  // The default destructOpaque uses delete. By overriding it, a custom deleter can be used
+  // The default destructOpaque implementation uses delete. By overriding it, a custom deleter can be used
 
   static void addProperties(ContextRef ctx, Object proto) {
     addPropMember<int, &MyClass::foo>(ctx, proto, "foo");
