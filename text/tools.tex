@@ -80,7 +80,7 @@ To allow the user to write their code in TypeScript, the command-line tool uses 
 
 The structure of a TypeScript project is described in the `tsconfig.json` file, which is loaded by the compiler. The file specifies, among other things, which files should be compiled, where the compiled files should be saved, and which ECMAScript version should be used for the output code.
 
-Because the target runtime is known to the compiler, it constrains some options in the `tsconfig.json` file, such as the target ECMAScript version. If the user specifies an invalid value of these options, the compiler will throw an error.
+Because the target runtime is known to the compiler, some options in the `tsconfig.json` file are constrained in preprocessing, such as the target ECMAScript version. If the user specifies an invalid value of these options, the compiler will throw an error.
 
 
 \section{Usage}

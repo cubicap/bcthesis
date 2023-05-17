@@ -20,7 +20,7 @@ A large portion of Jaculus-machine is a set of wrapper classes around the QuickJ
 
 Jaculus-machine uses two core concepts, which are referred to as *Machine* and *MFeature* in the code and the rest of this thesis. A *Machine* is an instance of the runtime complete with all the selected MFeatures. An *MFeature* is a module that can be used as a part of a Machine and which provides functionality to the runtime or to other MFeatures.
 
-The modular design of Jaculus-machine allows for easy extensibility and customization of the runtime. The user can select which MFeatures should be included in the runtime and also create new MFeatures with a low effort. It also allows for easier portability of existing MFeatures to other platforms.
+The modular design of Jaculus-machine allows for easy extensibility and customization of the runtime. The user can select which MFeatures should be included in the runtime and also create new MFeatures with low effort. It also allows for easier portability of existing MFeatures to other platforms.
 
 All public functionality of the library is contained in the `jac` namespace. QuickJS exports its symbols in the global namespace, and their names are usually prefixed with `JS`. The user should not interact with QuickJS directly for regular use, as the library provides wrappers for most of its functionality.
 
@@ -46,19 +46,17 @@ using Stack = C<B<A>>;
 
 The stack design of the Machine allows interfacing with different MFeatures in C++ directly without any middleware. Lower-level MFeatures are located lower in the stack and implement platform-specific functionality, while higher-level MFeatures are located higher in the stack and can use the abstraction provided by the lower-level MFeatures. This allows for easy portability of higher-level MFeatures to other platforms.
 
-In other words, instead of the MFeatures being initialized in relative isolation, as in many other runtimes, they are initialized as a part of a Machine, strictly in the context of lower-level MFeatures.
-
 \section{JavaScript concepts in C++}
 
 Because many JavaScript concepts do not have a direct equivalent in C++ or have different semantics, Jaculus-machine provides a set of classes that wrap their representation from the QuickJS API. The classes provide RAII semantics and aim to be as easy to use as possible.
 
 \subsection{Values}
 
-JavaScript values can be either primitive values (e.g., numbers) or objects (e.g., arrays). Primitive values are stored in stack memory, while objects are stored in the heap. QuickJS uses reference counting for memory management, and the user is responsible for decreasing the reference count of JavaScript values that are no longer needed. Jaculus-machine provides a set of classes that wrap JavaScript values and provide RAII semantics for them. The classes also provide a simple API for converting to and from C++ types.
+JavaScript values can contain either primitive types (e.g., numbers) or objects (e.g., arrays). Primitive values are stored in stack memory, while objects are stored in the heap. QuickJS uses reference counting for memory management, and the user is responsible for decreasing the reference count of JavaScript values that are no longer needed. Jaculus-machine provides a set of classes that wrap JavaScript values and provide RAII semantics for them. The classes also provide a simple API for converting to and from C++ types.
 
 The base class for JavaScript value wrapper is `ValueWrapper` and provides a general API for working with JavaScript values. More specific wrapper classes are derived from `ValueWrapper` and provide additional functionality, such as `ObjectWrapper` and `FunctionWrapper`.
 
-`ValueWrapper` has a template parameter `managed` that specifies whether the wrapper takes ownership of the underlying JavaScript value. This pattern is assumed from QuickJS, which sometimes does not give ownership of the value to the user to reduce the number of changes in its reference count. If the value is a reference, depending on the value of `managed`, the wrapper will either be a strong or a weak reference to the value. For convenience, the library provides two type aliases for all built-in wrappers, which are usually used instead and follow the following pattern:
+`ValueWrapper` has a template parameter `managed` that specifies whether the wrapper takes ownership of the underlying JavaScript value. This pattern is assumed from QuickJS, which sometimes does not give ownership of the value to the user to reduce the number of changes in its reference count. If the value is a reference, depending on the value of `managed`, the wrapper will either be a strong or a weak reference to the value. For convenience, the library provides two type aliases for all built-in wrappers, which are usually used instead and respect the following pattern:
 
 ```cpp
 // value/strong reference
@@ -114,7 +112,7 @@ struct ConvTraits<bool> {
 
 A portion of the Jaculus-machine library consists of wrappers that allow calling C++ functions from JavaScript code. When an exception is thrown in the wrapped C++ code, it is caught by the wrapper, converted to a JavaScript exception, and propagated to the runtime. The library allows the user to specify the JavaScript `Error` type or any other JavaScript value that should be thrown.
 
-Similarly, when a JavaScript function is called from C++, and an exception is thrown in the runtime, it is caught by the wrapper, converted to a C++ exception of type `jac::Exception`, and propagated to the C++ code.
+Similarly, when a JavaScript function is called from C++ and an exception is thrown in the runtime, it is caught by the wrapper, converted to a C++ exception of type `jac::Exception`, and propagated to the C++ code.
 
 Different types of C++ exceptions are converted to JavaScript exceptions as follows:
 
@@ -175,7 +173,7 @@ Value res = ctor.callConstructor(42);  // returns { a: 42 }
 
 \section{Features}
 
-Jaculus-machine mainly consists of wrappers around QuickJS API and provides only a minimum set of MFeatures that are required for the runtime to function correctly or are helpful for development and debugging. Instead, the library aims to provide functionality, which makes the creation of new MFeatures as easy as possible.
+Jaculus-machine mainly consists of wrappers around QuickJS API and provides only a small set of MFeatures that are required for the runtime to function correctly or are helpful for development and debugging. Instead, the library aims to provide functionality, which makes the creation of new MFeatures as easy as possible.
 
 \subsection{Built-in MFeatures}
 
@@ -272,7 +270,7 @@ ContextRef ctx = ...;
 MyClassJs::initContext(ctx);
 ```
 
-After doing the above steps, the class constructor and prototype can be retrieved and the class can be instantiated:
+After performing the above steps, the class constructor and prototype can be retrieved, and the class can be instantiated:
 
 ```cpp
 Value constructor = MyClassJs::getConstructor(ctx);

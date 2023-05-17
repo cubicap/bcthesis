@@ -23,16 +23,16 @@ The shortened development cycle naturally comes at a price, that being the perfo
 
 \section{Comparison with other solutions}
 
-There are already existing solutions to programming microcontrollers using JavaScript. While it would be nice to have a detailed comparison of at least some of them, it would overextend the scope of this thesis. However, a brief comparison of Jaculus with other solutions is provided in this section. These solutions were chosen based on their popularity:
+There are already existing solutions to programming microcontrollers using JavaScript. While it would be nice to have a detailed comparison of at least some of them, it would stretch the scope of this thesis too far. However, a brief comparison of Jaculus with other solutions is provided in this section. These solutions were chosen based on their popularity:
 
 - CircuitPython\cite{circuitpython} (fork of MicroPython\cite{micropython})
 - NodeMCU\cite{nodemcu} (Lua)
 - Espruino\cite{espruino} (JavaScript)
 - Moddable SDK\cite{moddable} (JavaScript)
 
-A common point of these solutions is their much larger feature set compared to Jaculus. They have not only much larger hardware and library support but also larger ecosystems and communities. Espruino and CircuitPython provide very convenient development environments.
+A common characteristic of these solutions is their much larger feature set compared to Jaculus. They have not only much larger hardware and library support but also larger ecosystems and communities. Espruino and CircuitPython provide very convenient development environments.
 
-What sets Jaculus aside from the other solutions is its much higher-level abstraction around different JavaScript concepts. This allows for much easier wrapping of existing libraries and other code to JavaScript modules, meaning that while the hardware support of Jaculus is currently low, adding more features to the runtime is a quick and straightforward task.
+What sets Jaculus apart from the other solutions is its much higher-level abstraction around different JavaScript concepts. This allows for much easier wrapping of existing libraries and other code to JavaScript modules, meaning that while the hardware support of Jaculus is currently low, adding more features to the runtime is a quick and straightforward task.
 
 \subsection{Non-JavaScript solutions}
 
@@ -65,7 +65,7 @@ console.log("Time: " + (end - start));
 
 The benchmarks show that Jaculus is significantly faster in computational tasks than Espruino and Moddable SDK. Moddable SDK is faster in the binary-trees benchmark, which is targeted at the creation of new objects and memory allocation. Moddable SDK is also faster in the GPIO benchmark, which may be caused by poorly optimized abstraction used to implement the native module in Jaculus.
 
-The low performance of Espruino can be likely attributed to the fact that internally, Espruino parses the JavaScript code into an abstract syntax tree, which is then directly interpreted, in contrast to the approach used by Jaculus and Moddable SDK, where the code is first compiled into bytecode and then interpreted.
+The low performance of Espruino can likely be attributed to the fact that internally, Espruino parses the JavaScript code into an abstract syntax tree, which is then directly interpreted. By contrast, the approach used by Jaculus and Moddable SDK, is first to compile the source code into bytecode, which is then interpreted. This approach allows for more optimizations to be performed on the bytecode, which results in better performance.
 
 
 \begin{table}[ht]
@@ -85,15 +85,67 @@ The low performance of Espruino can be likely attributed to the fact that intern
 \end{table}
 
 
+\chapter{Limitations}
+
+This chapter describes the limitations of the created components and the Jaculus-esp32 firmware. While the problems described here are not critical, they cause some inconvenience and should be addressed in the future.
+
+\section{Only one Context per Machine instance}
+
+From the beginning, the design of Jaculus-machine was to have only one Context per Machine instance. It seemed not to be a limiting factor and simplified implementation. However, later in development, it started to show it was a wrong decision and proves to be a limiting factor in some cases.
+
+For example, in REPL, all exceptions should be caught and reported to standard output. When starting REPL from a JavaScript program, the main program should crash on unhandled exceptions, whereas the REPL should not. Implementation of this would require REPL and the main program to be executed in separate contexts to distinguish between their behavior regarding exception handling.
+
+
+\section{Unhandled promise rejections not being reported}
+
+This is a limitation of QuickJS. Although QuickJS does have a mechanism for reporting unhandled promise rejections, it reports some false positives. Consider the following example:
+
+``` js
+new Promise((resolve, reject) => {
+  console.log("promise");
+  reject(null);
+}).then(() => {
+  console.log("ok");
+}).catch(() => {
+  console.log("error");
+});
+
+console.log("after");
+```
+
+The promise is created and immediately rejected. At that moment, the promise does not have a rejection handler, and thus QuickJS reports an unhandled promise rejection. However, the handler is added before the promise goes out of scope and handles the rejection.
+
+Because of the false positives, the mechanism for reporting unhandled promise rejections is disabled in Jaculus-machine.
+
+Fortunately, this is not a problem for well-written code, which correctly handles all possible promise rejections. However, when an unhandled promise rejection occurs, it is not reported, which may lead to errors that are difficult to debug.
+
+To fix this, modifying QuickJS internals would be required, which is outside the scope of this theis, but it is an essential consideration for future work.
+
+
+\section{Filesystem API}
+
+As the Filesystem MFeature is implemented using C++ `std::filesystem` API, which is not yet fully supported by the ESP-IDF, some of its functionality does not work, and some may even block the runtime indefinitely.
+
+The broken functionality involves listing directories --- `readdir` and `rmdir`. Fortunately, working with files works without a problem, which is an essential functionality for loading JavaScript files.
+
+It would be possible to separately reimplement the MFeature to use the POSIX API, but it would make more sense to implement a more complex abstraction layer around the filesystem API, which could be used by other Jaculus components as well. However, that would require a significant amount of work, which is not strictly necessary for the functionality of Jaculus-esp32.
+
+\section{Compatibility with other platforms}
+
+While implementing all of the created components, I have focused on only using the standard C++20 library. This worked well for development, as all of the functionality could be tested locally on a desktop PC, and later everything could be easily integrated with the ESP-IDF. Unfortunately, after briefly exploring development options of platforms other than ESP32 (STM32, RP2040), I have discovered that the C++20 standard is often not fully supported. Some platforms do not even fully support older standards, such as C++17.
+
+This dealt a significant blow to the portability of these components, which would have to be partially rewritten to support other platforms. Mainly, an abstraction layer around the filesystem API and asynchronous elements (threads, synchronization primitives) would have to be implemented.
+
+
 \chapter{Conclusion}
 
 The goal of this thesis was to create an ecosystem for programming embedded devices using JavaScript.
 
 The presented solution consists of Jaculus-dcore library and Jaculus-tools command-line application. The library provides the core functionality of a Jaculus device, and the application provides a way to interact with the device. The Jaculus-dcore library is also integrated into the Jaculus-esp32 firmware, which ports the solution to the ESP32 platform.
 
-Two standalone libraries were also created as part of the solution: Jaculus-link and Jaculus-machine. The former is a communication library, and the latter is an implementation of the JavaScript runtime with easy extensibility. Both libraries are well documented and tested, and can be used independently of the rest of the solution.
+Two standalone libraries were also created as part of the solution: Jaculus-link and Jaculus-machine. The former is a communication library, and the latter is an implementation of the JavaScript runtime with easy extensibility. Both libraries are well documented and tested, and can be used independently from the rest of the solution.
 
-Although the solution is in a usable state and, in terms of performance, can compete with other existing solutions, many features are still missing, and some bugs are present. Most importantly, more MFeatures must be implemented for Jaculus to be a viable alternative to other existing solutions. Further improvements can also be made to the upload protocol, which is currently very simple and could have better performance and reliability.
+Although the solution is in a usable state and, in terms of performance, can compete with other existing solutions, many features are still missing, and some bugs are inevitably present. Most importantly, more MFeatures must be implemented for Jaculus to be a viable alternative to other existing solutions. Further improvements can also be made to the upload protocol, which is presently very simple and could have better performance and reliability.
 
 \shorthandon{'}
 \end{markdown*}
